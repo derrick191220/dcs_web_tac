@@ -4,13 +4,35 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 import os
 import shutil
-from . import schemas, database, parser
+from . import schemas, database, parser, db_init
 
 app = FastAPI(
     title="DCS Web-Tac API",
     description="Professional flight data analysis backend for DCS World.",
-    version="0.2.0"
+    version="0.2.1"
 )
+
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    # Ensure data directory exists
+    os.makedirs("data", exist_ok=True)
+    db_init.init_db()
+    # Pre-load the sample data if DB is empty
+    try:
+        with database.get_db() as db:
+            count = db.cursor().execute("SELECT count(*) FROM sorties").fetchone()[0]
+            if count == 0:
+                sample_path = os.path.join(os.path.dirname(__file__), "data", "samples", "full_flight_sim.acmi")
+                # Fallback for relative path
+                if not os.path.exists(sample_path):
+                    sample_path = "data/samples/full_flight_sim.acmi"
+                
+                if os.path.exists(sample_path):
+                    acmi_parser = parser.AcmiParser()
+                    acmi_parser.parse_file(sample_path)
+    except Exception as e:
+        print(f"Startup DB Error: {e}")
 
 # Enable CORS for frontend development
 app.add_middleware(
@@ -26,7 +48,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # API Endpoints
 @app.get("/api/", tags=["Health"])
 def read_root():
-    return {"status": "DCS Web-Tac System Online", "principles_adhered": True}
+    return {"status": "DCS Web-Tac System Online", "version": "0.2.1", "principles_adhered": True}
 
 @app.get("/api/sorties", response_model=List[schemas.Sortie], tags=["Data"])
 def list_sorties():
@@ -62,10 +84,11 @@ def process_acmi(file_path: str):
 
 # Serve Frontend Static Files
 static_path = os.path.join(os.path.dirname(__file__), "..", "static")
+if not os.path.exists(static_path):
+    static_path = "static"
 app.mount("/", StaticFiles(directory=static_path, html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
-    # Use environment port for cloud deployment
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
