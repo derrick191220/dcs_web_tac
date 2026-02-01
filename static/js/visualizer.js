@@ -22,10 +22,17 @@ try {
         terrainProvider: new Cesium.EllipsoidTerrainProvider(),
         baseLayer: new Cesium.ImageryLayer(new Cesium.TileMapServiceImageryProvider({
             url: Cesium.buildModuleUrl('Assets/Textures/NaturalEarthII')
-        }))
+        })),
+        skyBox: false,
+        skyAtmosphere: false,
+        baseLayerPicker: false,
+        requestRenderMode: false,
+        maximumRenderTimeChange: Infinity
     });
+    Cesium.Ion.defaultAccessToken = ''; 
+    viewer.scene.contentRating = undefined; 
     viewer.scene.globe.baseColor = Cesium.Color.BLACK; 
-    viewer._cesiumWidget._creditContainer.style.display = "none"; // Hide credit to avoid Ion links
+    viewer._cesiumWidget._creditContainer.style.display = "none"; 
     console.log("Cesium Viewer initialized successfully.");
 } catch (error) {
     console.error("Failed to initialize Cesium Viewer:", error);
