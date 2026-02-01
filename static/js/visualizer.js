@@ -138,7 +138,7 @@ function visualizeFlight(telemetry, flightStartTime) {
         position: positions,
         orientation: orientations, // Use the real orientations from telemetry
         model: {
-            uri: 'https://assets.agi.com/models/F-16.glb', // Professional F-16 model
+            uri: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMilkTruck/glTF-Binary/CesiumMilkTruck.glb', // Fallback temporary test model known to have CORS allowed
             minimumPixelSize: 128,
             maximumScale: 20000
         },
