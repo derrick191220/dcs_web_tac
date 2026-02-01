@@ -42,17 +42,18 @@ const { chromium } = require('playwright');
     // 等待 Cesium 彻底完成初始化
     await new Promise(r => setTimeout(r, 8000));
     
-    // 检查核心对象
+    // 检查核心对象（Vue 版本不暴露全局 viewer）
     const viewerStatus = await page.evaluate(() => {
-        return {
-            cesiumReady: typeof Cesium !== 'undefined',
-            viewerReady: typeof viewer !== 'undefined' && viewer !== null,
-            hudReady: !!document.getElementById('hud-lat')
-        };
+        const cesiumReady = typeof Cesium !== 'undefined';
+        const container = document.getElementById('cesiumContainer');
+        const hasCanvas = !!(container && container.querySelector('canvas'));
+        const hasHudText = !!document.querySelector('header h1');
+        return { cesiumReady, hasCanvas, hasHudText };
     });
     
-    if (!viewerStatus.viewerReady) logs.push('[SYSTEM_ERROR] Cesium Viewer 未能正确初始化');
-    if (!viewerStatus.hudReady) logs.push('[SYSTEM_ERROR] 遥测 HUD 元素缺失');
+    if (!viewerStatus.cesiumReady) logs.push('[SYSTEM_ERROR] Cesium 未加载');
+    if (!viewerStatus.hasCanvas) logs.push('[SYSTEM_ERROR] Cesium Canvas 未渲染');
+    if (!viewerStatus.hasHudText) logs.push('[SYSTEM_ERROR] HUD/顶部栏缺失');
     
     console.log(JSON.stringify(logs));
   } catch (e) {
