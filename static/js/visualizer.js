@@ -11,7 +11,7 @@ try {
         infoBox: false,
         selectionIndicator: false,
         navigationHelpButton: false,
-        baseLayerPicker: true, 
+        baseLayerPicker: false, // Disabled to prevent 401 errors from default Ion layers
         geocoder: false,
         homeButton: true,
         sceneModePicker: true,
