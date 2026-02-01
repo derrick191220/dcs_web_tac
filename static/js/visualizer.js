@@ -16,8 +16,8 @@ try {
         homeButton: true,
         sceneModePicker: true,
         shouldAnimate: true,
-        // Removed createWorldTerrain() because it's deprecated/removed in many versions
-        // and requires an Ion token for the new Async version.
+        // Disable default Ion terrain to avoid 401 and GPU stalls
+        terrainProvider: new Cesium.EllipsoidTerrainProvider(),
     });
     console.log("Cesium Viewer initialized successfully.");
 } catch (error) {

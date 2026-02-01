@@ -7,13 +7,13 @@ class TelemetryBase(BaseModel):
     lat: float
     lon: float
     alt: float
-    roll: float
-    pitch: float
-    yaw: float
+    roll: Optional[float] = 0.0
+    pitch: Optional[float] = 0.0
+    yaw: Optional[float] = 0.0
     ias: float
-    mach: float
+    mach: Optional[float] = 0.0
     g_force: float
-    fuel_remaining: float
+    fuel_remaining: Optional[float] = 0.0
 
 class SortieBase(BaseModel):
     mission_name: str
