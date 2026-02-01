@@ -5,37 +5,58 @@ import json
 import time
 
 def check_backend():
-    print("🔍 [Backend] Running automated test suite...")
+    print("🔍 [后端检查] 运行自动化测试...")
     try:
         result = subprocess.run(["python3", "-m", "pytest", "tests/test_api.py"], 
                               env={**os.environ, "PYTHONPATH": os.getcwd()},
                               capture_output=True, text=True)
         if result.returncode == 0:
-            print("✅ Backend: All API tests passed.")
+            print("✅ 后端: API 测试全部通过。")
             return True
         else:
-            print(f"❌ Backend: API tests failed!\n{result.stdout}")
+            print(f"❌ 后端: API 测试失败!\n{result.stdout}")
             return False
     except Exception as e:
-        print(f"❌ Backend: Critical error: {e}")
+        print(f"❌ 后端: 发生严重错误: {e}")
         return False
 
 def check_frontend(url):
-    print(f"🔍 [Frontend] Scanning {url} via Headless Browser...")
+    print(f"🔍 [前端检查] 使用 Playwright 扫描 {url} ...")
     js_code = """
 const { chromium } = require('playwright');
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage();
   const logs = [];
-  page.on('console', msg => logs.push('[' + msg.type().toUpperCase() + '] ' + msg.text()));
-  page.on('pageerror', err => logs.push('[RUNTIME] ' + err.message));
+  page.on('console', msg => {
+    const txt = msg.text();
+    // 忽略一些由于外部库(Cesium)引起的非致命性资源加载警告或特定报错
+    if (msg.type() === 'error' && !txt.includes('NaturalEarthII') && !txt.includes('GPU stall')) {
+        logs.push('[CONSOLE_ERROR] ' + txt);
+    }
+  });
+  page.on('pageerror', err => logs.push('[RUNTIME_ERROR] ' + err.message));
+  
   try {
     await page.goto('""" + url + """', { waitUntil: 'networkidle', timeout: 30000 });
-    await new Promise(r => setTimeout(r, 5000));
+    // 等待 Cesium 彻底完成初始化
+    await new Promise(r => setTimeout(r, 8000));
+    
+    // 检查核心对象
+    const viewerStatus = await page.evaluate(() => {
+        return {
+            cesiumReady: typeof Cesium !== 'undefined',
+            viewerReady: typeof viewer !== 'undefined' && viewer !== null,
+            hudReady: !!document.getElementById('hud-lat')
+        };
+    });
+    
+    if (!viewerStatus.viewerReady) logs.push('[SYSTEM_ERROR] Cesium Viewer 未能正确初始化');
+    if (!viewerStatus.hudReady) logs.push('[SYSTEM_ERROR] 遥测 HUD 元素缺失');
+    
     console.log(JSON.stringify(logs));
   } catch (e) {
-    console.log(JSON.stringify(["ERROR: " + e.message]));
+    console.log(JSON.stringify(["[CONNECTION_ERROR] 访问失败: " + e.message]));
   } finally {
     await browser.close();
   }
@@ -44,45 +65,48 @@ const { chromium } = require('playwright');
     try:
         with open("diag_tmp.js", "w") as f: f.write(js_code)
         
-        # 增加重试逻辑，等待部署生效
-        for i in range(5):
-            print(f"   (Attempt {i+1}/5) Checking console logs...")
+        # 针对 Render 部署延迟，进行多轮探测
+        for i in range(10):
+            print(f"   (尝试 {i+1}/10) 探测浏览器控制台日志...")
             result = subprocess.run(["node", "diag_tmp.js"], capture_output=True, text=True)
             if not result.stdout.strip(): continue
             
-            logs = json.loads(result.stdout)
-            # 排除掉不可避免的 WebGL 性能警告以及 Cesium 内部的资源加载警告
-            errors = [l for l in logs if ("ERROR" in l or "RUNTIME" in l or "401" in l or "500" in l) 
-                      and "GPU stall" not in l 
-                      and "NaturalEarthII" not in l]
+            try:
+                logs = json.loads(result.stdout)
+            except:
+                continue
+
+            # 过滤掉 401 报错（这是残留的旧版本特征）
+            is_old_version = any("401" in l for l in logs)
             
-            if not errors:
-                print("✅ Frontend: No critical console errors found.")
-                os.remove("diag_tmp.js")
-                return True
-            
-            # 如果发现老错误，可能部署还没完
-            if any("TypeError" in e for e in errors) and i < 4:
-                print("   ⚠️ Found old error, waiting for Render deployment to finish...")
+            if is_old_version:
+                print("   ⚠️ 检测到 401 报错，这说明 Render 还在运行旧代码，等待部署更新...")
                 time.sleep(30)
                 continue
-            
-            print(f"❌ Frontend: Detected {len(errors)} critical errors:")
-            for e in errors: print(f"   - {e}")
-            os.remove("diag_tmp.js")
-            return False
-            
+
+            if not logs:
+                print("✅ 前端: 未发现任何报错，页面加载完美。")
+                os.remove("diag_tmp.js")
+                return True
+            else:
+                print(f"❌ 前端: 发现 {len(logs)} 个致命错误:")
+                for e in logs: print(f"   - {e}")
+                os.remove("diag_tmp.js")
+                return False
+                
+        print("❌ 前端: 探测超时，代码可能未生效或持续报错。")
+        return False
     except Exception as e:
-        print(f"❌ Frontend: Diagnostic failed: {e}")
+        print(f"❌ 前端: 诊断脚本执行失败: {e}")
         return False
 
 if __name__ == "__main__":
-    target = sys.argv[1] if len(sys.argv) > 1 else "https://dcs-web-tac.onrender.com/"
+    target = "https://dcs-web-tac.onrender.com/"
     b_ok = check_backend()
     f_ok = check_frontend(target)
     if b_ok and f_ok:
-        print("\n✨ FULL CHAIN STATUS: HEALTHY")
+        print("\n✨ 全链路验证结果: 完美健康 (HEALTHY)")
         sys.exit(0)
     else:
-        print("\n🚨 FULL CHAIN STATUS: UNHEALTHY")
+        print("\n🚨 全链路验证结果: 存在缺陷 (UNHEALTHY)")
         sys.exit(1)
