@@ -61,4 +61,11 @@ def process_acmi(file_path: str):
     acmi_parser.parse_file(file_path)
 
 # Serve Frontend Static Files
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+static_path = os.path.join(os.path.dirname(__file__), "..", "static")
+app.mount("/", StaticFiles(directory=static_path, html=True), name="static")
+
+if __name__ == "__main__":
+    import uvicorn
+    # Use environment port for cloud deployment
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
