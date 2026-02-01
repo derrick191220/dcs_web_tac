@@ -4,33 +4,34 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 import os
 import shutil
-from . import schemas, database, parser, db_init
+from . import schemas, database, parser, db_init, logger
+
+# Use the structured logger
+app_logger = logger.logger
 
 app = FastAPI(
     title="DCS Web-Tac API",
     description="Professional flight data analysis backend for DCS World.",
-    version="0.2.2"
+    version="0.2.3"
 )
 
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
+    app_logger.info("System starting up...")
     os.makedirs("data/uploads", exist_ok=True)
     db_init.init_db()
     try:
         with database.get_db() as db:
             count = db.cursor().execute("SELECT count(*) FROM sorties").fetchone()[0]
             if count == 0:
-                # Path relative to the directory where main.py is run
                 sample_path = os.path.join("data", "samples", "full_flight_sim.acmi")
                 if os.path.exists(sample_path):
-                    print(f"Loading default sample from {sample_path}")
+                    app_logger.info(f"Loading default sample from {sample_path}")
                     acmi_parser = parser.AcmiParser()
                     acmi_parser.parse_file(sample_path)
-                else:
-                    print(f"Warning: Sample file not found at {sample_path}")
     except Exception as e:
-        print(f"Startup DB Error: {e}")
+        app_logger.error(f"Startup DB Error: {e}")
 
 app.add_middleware(
     CORSMiddleware,
