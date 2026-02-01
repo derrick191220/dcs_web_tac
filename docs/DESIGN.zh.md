@@ -34,24 +34,34 @@
 ---
 
 ## 4. 功能范围（V1）
-### 4.1 数据导入
+### 4.1 数据导入（含进度）
 - 支持 `.acmi/.zip/.gz/.zip.acmi`
-- 后台解析并写入 SQLite
-- 不支持的格式需报错
+- 生成解析 Job（queued/running/done/failed）
+- 进度：已处理字节/总字节，ETA（尽力）
+- 完成提示：前端提示 + 刷新 sortie
+- 不支持格式要明确报错
 
-### 4.2 数据浏览
-- Sortie 列表（时间倒序）
-- 飞机对象列表
-- 支持按 `obj_id` 过滤 telemetry
+### 4.2 数据浏览（Tacview 类似能力）
+- Sortie 列表（任务/时间/飞行员/机型/地图）
+- 飞机列表 + 过滤（类型/阵营/飞行员/名称）
+- 快速搜索（呼号/飞行员）
+- 遥测支持窗口查询与降采样
 
-### 4.3 回放
-- 显示飞机位置与姿态
-- 显示完整航迹
-- HUD 基于最近采样更新
+### 4.3 回放（Tacview 类似能力）
+- 时间轴控制：播放/暂停/拖动/倍速（0.5x–8x）
+- 视角：跟随/自由/俯视
+- HUD：高度/速度/G/姿态
+- 航迹：全程/最近尾迹切换
 
-### 4.4 诊断
+### 4.4 回放准确性保障
+- 单位/坐标校验（WGS‑84、米、节、度）
+- 时间基准：ReferenceTime + time_offset 秒
+- 姿态合理性检查（航向连续、俯仰/滚转范围）
+- 可选抽样对比（渲染点 vs 原始遥测）
+
+### 4.5 诊断
 - 本地链路测试（pytest + headless）
-- 线上 `doctor.py` 扫描
+- 线上 `doctor.py` 扫描 + 最新解析状态
 
 ---
 
@@ -117,6 +127,11 @@
 ### `GET /api/jobs/{id}`
 ```json
 { "id":"abc123", "sortie_id":1, "status":"running", "progress_pct":42, "error":null }
+```
+
+### `GET /api/jobs/{id}/events`
+```json
+[{"ts":1700000000,"level":"info","message":"Parsing ACMI chunk 12/60"}]
 ```
 
 ---

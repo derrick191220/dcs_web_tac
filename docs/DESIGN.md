@@ -34,24 +34,34 @@ This document is **actionable**: it defines scope, flows, API contracts, data mo
 ---
 
 ## 4. Functional Scope (V1)
-### 4.1 Ingestion
+### 4.1 Ingestion (with progress)
 - Upload `.acmi`, `.zip`, `.gz`, `.zip.acmi`.
-- Background parse; store data in SQLite.
-- Reject unsupported formats.
+- Create **Parse Job** with status (`queued/running/done/failed`).
+- Progress updates: bytes processed / total, ETA (best effort).
+- Completion prompt: visible UI toast + sortie list refresh.
+- Reject unsupported formats with clear error.
 
-### 4.2 Data Browsing
-- List sorties (most recent first).
-- List aircraft objects within a sortie.
-- Filter telemetry by aircraft (`obj_id`).
+### 4.2 Data Browsing (Tacview‑like)
+- Sortie list (time, mission, pilot, aircraft, map).
+- Aircraft list with filters: **type/coalition/pilot/name**.
+- Quick search by callsign/pilot.
+- Telemetry query supports **time window** and **downsample**.
 
-### 4.3 Playback
-- Render aircraft position and orientation.
-- Render full trail path.
-- HUD updates based on nearest telemetry sample.
+### 4.3 Playback (Tacview‑like)
+- Timeline controls: play/pause/seek/speed (0.5x–8x).
+- View modes: **follow aircraft / free camera / top‑down**.
+- HUD panels: altitude, IAS, G, attitude.
+- Trajectory: full trail + recent trail toggle.
 
-### 4.4 Diagnostics
+### 4.4 Accuracy Assurance (Replay correctness)
+- Units/coordinate validation on ingest (WGS‑84, meters, knots, degrees).
+- Time base aligned to `ReferenceTime` + `time_offset` seconds.
+- Orientation sanity checks (yaw continuity, pitch/roll limits).
+- Optional **ground truth** sampling: compare rendered positions vs raw telemetry.
+
+### 4.5 Diagnostics
 - Local chain test (pytest + headless browser).
-- Production scan with `doctor.py`.
+- Production scan with `doctor.py` + last parse status.
 
 ---
 
@@ -129,6 +139,11 @@ This document is **actionable**: it defines scope, flows, API contracts, data mo
 ### `GET /api/jobs/{id}`
 ```json
 { "id":"abc123", "sortie_id":1, "status":"running", "progress_pct":42, "error":null }
+```
+
+### `GET /api/jobs/{id}/events`
+```json
+[{"ts":1700000000,"level":"info","message":"Parsing ACMI chunk 12/60"}]
 ```
 
 ---
