@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCS Web-Tac | Flight Visualizer</title>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.110/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.110/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-slate-900 text-white overflow-hidden">
+    <!-- Header -->
+    <header class="h-16 border-b border-slate-700 flex items-center px-6 justify-between bg-slate-800">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center font-bold">W</div>
+            <h1 class="text-xl font-semibold tracking-tight">DCS Web-Tac <span class="text-xs text-slate-400">v0.2.0</span></h1>
+        </div>
+        <div class="flex space-x-4">
+            <button id="uploadBtn" class="bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded text-sm transition font-medium">Upload ACMI</button>
+            <div class="h-8 w-px bg-slate-700"></div>
+            <span class="text-sm text-slate-300 self-center">Pilot: Derrick</span>
+        </div>
+    </header>
+
+    <main class="flex h-[calc(100vh-4rem)]">
+        <!-- Sidebar: Sortie List -->
+        <aside class="w-80 border-r border-slate-700 bg-slate-800 overflow-y-auto">
+            <div class="p-4 border-b border-slate-700">
+                <h2 class="text-sm font-bold uppercase text-slate-400">Sortie History</h2>
+            </div>
+            <div id="sortieList" class="divide-y divide-slate-700">
+                <!-- Sorties will be loaded here -->
+                <div class="p-4 text-center text-slate-500 text-sm italic">Loading missions...</div>
+            </div>
+        </aside>
+
+        <!-- Main View: Cesium Container -->
+        <section class="flex-1 relative">
+            <div id="cesiumContainer" class="w-full h-full"></div>
+            
+            <!-- HUD / Data Overlay -->
+            <div class="absolute top-4 right-4 bg-black/60 backdrop-blur-md p-4 rounded-lg border border-white/10 w-64 pointer-events-none">
+                <h3 class="text-xs font-bold text-blue-400 mb-2 uppercase">Telemetry Data</h3>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <span class="text-slate-400">Alt:</span> <span id="hud-alt">0 m</span>
+                    <span class="text-slate-400">Speed:</span> <span id="hud-speed">0 kts</span>
+                    <span class="text-slate-400">G-Force:</span> <span id="hud-g">1.0</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/visualizer.js"></script>
+</body>
+</html>
