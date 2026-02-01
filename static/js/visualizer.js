@@ -138,7 +138,7 @@ function visualizeFlight(telemetry, flightStartTime) {
         position: positions,
         orientation: orientations, // Use the real orientations from telemetry
         model: {
-            uri: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMilkTruck/glTF-Binary/CesiumMilkTruck.glb', // Fallback temporary test model known to have CORS allowed
+            uri: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb', // Use even simpler model to test
             minimumPixelSize: 128,
             maximumScale: 20000
         },
@@ -150,7 +150,7 @@ function visualizeFlight(telemetry, flightStartTime) {
             }),
             width: 8,
             leadTime: 0,
-            trailTime: 100000 // Show much longer trail
+            trailTime: 1000000 // Very long trail
         },
         label: {
             text: 'PILOT: DERRICK',
