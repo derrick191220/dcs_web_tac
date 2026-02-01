@@ -1,33 +1,70 @@
-# Design Document - DCS Web-Tac (Enterprise Edition)
+# Design Document - DCS Web‑Tac (Enterprise Edition)
 
-## Core Principles
-1. **Technical Excellence**: High-performance asynchronous backend (FastAPI) and expert-level 3D visualization (Cesium.js).
+## 1. Vision & Goals
+- Build a Tacview‑grade web analytics platform for DCS World replays.
+- Provide high‑fidelity 3D playback, telemetry HUD, and analysis tools.
+- Be stable, reproducible, and deployable (Render).
+
+## 2. Core Principles
+1. **Technical Excellence**: High‑performance asynchronous backend (FastAPI) and expert‑level 3D visualization (Cesium.js).
 2. **Friendly UI**: Interactive dashboards with Tailwind CSS and deep data integration.
-3. **Practical Functionality**: Real-time telemetry, ACMI replay, and flight performance metrics.
+3. **Practical Functionality**: ACMI replay, mission browsing, and flight performance metrics.
 4. **Security & Reliability**: ACID storage via SQLite and background task processing.
-5. **Aviation Standards**: Compliant with ACMI 2.1 and global flight data conventions.
-6. **Documentation**: Integrated API docs and structured design specifications.
+5. **Aviation Standards**: Compliant with ACMI 2.1/2.2 and DCS conventions.
+6. **Documentation**: Integrated API docs and structured design specs.
 
-## Technical Implementation
-This project follows the `dcs-fullstack-dev` engineering framework.
+## 3. Scope (MVP)
+- Upload ACMI (.acmi/.zip/.gz/.zip.acmi)
+- Parse ACMI and store in SQLite
+- List sorties and aircraft objects
+- Select aircraft and replay trajectory + HUD
+- Health checks and diagnostics
 
-### 1. Backend Layer (Python/FastAPI)
-- **Asynchronous Processing**: All data ingestion and database I/O is non-blocking.
-- **Data Schemas**: Strict validation using Pydantic models for Sorties and Telemetry.
-- **Ingestion**: Supports `.acmi`, `.zip`, and `.gz` formats via background processing.
+## 4. Data Model
+### 4.1 Sorties
+- id, mission_name, pilot_name, aircraft_type, start_time, map_name
 
-### 2. Frontend Layer (JS/Cesium.js)
-- **3D Geospatial Viewer**: High-fidelity flight path rendering on a global ellipsoid.
-- **Interpolated Playback**: Uses `SampledPositionProperty` for smooth movement between DCS samples.
-- **Robust HUD**: Dynamic telemetry overlay synced with the 3D playback timeline.
+### 4.2 Objects
+- id, sortie_id, obj_id, name, type, coalition, pilot
 
-### 3. Data Storage (SQLite)
-- Relational schema optimized for time-series flight data.
-- Automated migrations and initialization logic.
+### 4.3 Telemetry
+- id, sortie_id, obj_id, time_offset
+- lat, lon, alt
+- roll, pitch, yaw
+- ias, mach, g_force, fuel_remaining
 
-## Roadmap
-- [x] Phase 1: Basic project setup and GitHub integration.
-- [x] Phase 2: ACMI data parsing and SQLite storage.
-- [x] Phase 3: Modern 3D web dashboard and Render deployment.
-- [ ] Phase 4: Real-time UDP telemetry streaming from DCS.
-- [ ] Phase 5: Statistical energy management charts.
+## 5. Backend APIs (v0)
+- `GET /api/` → health
+- `GET /api/sorties`
+- `GET /api/sorties/{id}/objects`
+- `GET /api/sorties/{id}/telemetry?obj_id=...`
+- `POST /api/upload`
+
+## 6. Frontend UX
+- Left: sorties list + aircraft selector
+- Center: Cesium 3D globe and flight path
+- Right: HUD (altitude/speed/G/attitude)
+- Upload button (ACMI)
+
+## 7. Rendering & Playback
+- Use Cesium `SampledPositionProperty` for smooth interpolation
+- Model orientation uses ACMI yaw/pitch/roll (degree)
+- Path is persistent trail (full mission)
+
+## 8. Performance Constraints
+- Large ACMI files: stream/parse and store efficiently
+- Avoid UI stutters: pre‑sample or batch rendering for large datasets
+
+## 9. Roadmap (Tacview parity)
+- Multi‑aircraft filters (type/coalition/pilot)
+- Timeline controls (play/pause/speed)
+- Event markers (kills, launches, impacts)
+- Charts (speed/alt/G)
+- Real‑time UDP ingestion
+
+## 10. QA & Release
+- Follow `docs/qa.md` (Xiao Ou Loop v2.0)
+
+---
+
+> Chinese version: `docs/DESIGN.zh.md`
