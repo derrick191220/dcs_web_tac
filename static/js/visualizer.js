@@ -1,23 +1,29 @@
-// Initialize Cesium Viewer - Most Stable Configuration
-console.log("Visualizer.js version 0.2.3 loading...");
+// Initialize Cesium Viewer - Professional & Robust Configuration
+console.log("Visualizer.js v0.2.4: Initializing flight visualizer...");
 
-// Use Default Cesium Terrain and OpenStreetMap if default fails
-const viewer = new Cesium.Viewer('cesiumContainer', {
-    terrainProvider: Cesium.createWorldTerrain(),
-    animation: true,
-    timeline: true,
-    infoBox: false,
-    selectionIndicator: false,
-    navigationHelpButton: false,
-    baseLayerPicker: true, 
-    geocoder: false,
-    homeButton: true,
-    sceneModePicker: true,
-    shouldAnimate: true,
-    // Add these to debug loading
-    requestRenderMode: false,
-    maximumRenderTimeChange: Infinity
-});
+let viewer;
+
+// Initialize the Cesium viewer with a more compatible setup
+try {
+    viewer = new Cesium.Viewer('cesiumContainer', {
+        animation: true,
+        timeline: true,
+        infoBox: false,
+        selectionIndicator: false,
+        navigationHelpButton: false,
+        baseLayerPicker: true,
+        geocoder: false,
+        homeButton: true,
+        sceneModePicker: true,
+        shouldAnimate: true,
+        // Removed createWorldTerrain() because it's deprecated/removed in many versions
+        // and requires an Ion token for the new Async version.
+    });
+    console.log("Cesium Viewer initialized successfully.");
+} catch (error) {
+    console.error("Failed to initialize Cesium Viewer:", error);
+    document.getElementById('cesiumContainer').innerHTML = `<div class="p-10 text-red-500">3D Engine Error: ${error.message}</div>`;
+}
 
 // HUD Elements
 const hudAlt = document.getElementById('hud-alt');
@@ -29,18 +35,18 @@ let currentEntity = null;
 
 async function loadSorties() {
     try {
-        console.log("API Request: /api/sorties");
+        console.log("Fetching sorties from API...");
         const response = await fetch('/api/sorties');
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         
         const sorties = await response.json();
-        console.log("Sorties received:", sorties);
+        console.log("Sorties loaded:", sorties);
         
         const listContainer = document.getElementById('sortieList');
         listContainer.innerHTML = '';
 
         if (!sorties || sorties.length === 0) {
-            listContainer.innerHTML = '<div class="p-4 text-center text-slate-500 text-sm italic">No data. Click "Upload ACMI" to begin.</div>';
+            listContainer.innerHTML = '<div class="p-4 text-center text-gray-500 text-sm italic">No data found.</div>';
             return;
         }
 
@@ -48,22 +54,21 @@ async function loadSorties() {
             const item = document.createElement('div');
             item.className = 'p-4 sortie-item transition border-l-4 border-transparent';
             item.innerHTML = `
-                <div class="font-bold text-blue-400">${s.aircraft_type || 'Unknown Unit'}</div>
-                <div class="text-xs text-slate-300 mt-1">${s.mission_name}</div>
-                <div class="text-[10px] text-slate-500 mt-1">${s.start_time}</div>
+                <div class="font-bold text-blue-400">${s.aircraft_type || 'DCS Unit'}</div>
+                <div class="text-xs text-gray-300 mt-1">${s.mission_name}</div>
+                <div class="text-[10px] text-gray-500 mt-1">${s.start_time}</div>
             `;
             item.onclick = () => selectSortie(s, item);
             listContainer.appendChild(item);
         });
         
-        // Auto-select first sortie if available
+        // Auto-select first sortie
         if (sorties.length > 0) {
-            console.log("Auto-selecting first mission...");
             selectSortie(sorties[0], listContainer.firstChild);
         }
     } catch (err) {
         console.error("Sortie List Error:", err);
-        document.getElementById('sortieList').innerHTML = `<div class="p-4 text-red-400 text-sm">Connection Error: ${err.message}</div>`;
+        document.getElementById('sortieList').innerHTML = `<div class="p-4 text-red-400 text-sm">Connection Error</div>`;
     }
 }
 
@@ -72,19 +77,18 @@ async function selectSortie(sortie, element) {
     if (element) element.classList.add('active');
 
     try {
-        console.log(`Fetching Telemetry: /api/sorties/${sortie.id}/telemetry`);
+        console.log(`Fetching Telemetry for ID ${sortie.id}...`);
         const response = await fetch(`/api/sorties/${sortie.id}/telemetry`);
         const data = await response.json();
-        console.log(`Points received: ${data.length}`);
         
-        // Robust Date Handling
+        // Date parsing: Render/Python often omits the 'Z'
         let rawStart = sortie.start_time;
-        if (!rawStart.includes('Z') && !rawStart.includes('+')) rawStart += 'Z';
+        if (!rawStart.includes('Z')) rawStart += 'Z';
         const flightStartTime = Cesium.JulianDate.fromIso8601(rawStart);
         
         visualizeFlight(data, flightStartTime);
     } catch (err) {
-        console.error("Telemetry Visualization Error:", err);
+        console.error("Telemetry Error:", err);
     }
 }
 
@@ -103,37 +107,34 @@ function visualizeFlight(telemetry, flightStartTime) {
         positions.addSample(time, position);
     });
 
-    // Use a simpler entity for maximum compatibility
     currentEntity = viewer.entities.add({
         position: positions,
         orientation: new Cesium.VelocityOrientationProperty(positions),
         path: {
             resolution: 1,
-            material: new Cesium.ColorMaterialProperty(Cesium.Color.GOLD.withAlpha(0.8)),
-            width: 4,
-            trailTime: 1000,
-            leadTime: 0
+            material: new Cesium.PolylineGlowMaterialProperty({
+                glowPower: 0.25,
+                color: Cesium.Color.GOLD
+            }),
+            width: 6,
+            trailTime: 600
         },
-        // Point is much more reliable than external GLB models
         point: {
-            pixelSize: 12,
+            pixelSize: 15,
             color: Cesium.Color.RED,
             outlineColor: Cesium.Color.WHITE,
             outlineWidth: 2
         },
         label: {
-            text: 'F-16C ACTIVE',
-            font: '14pt sans-serif',
-            fillColor: Cesium.Color.WHITE,
-            outlineColor: Cesium.Color.BLACK,
-            outlineWidth: 2,
+            text: 'PILOT: DERRICK',
+            font: 'bold 12pt sans-serif',
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            outlineWidth: 2,
             verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-            pixelOffset: new Cesium.Cartesian2(0, -15)
+            pixelOffset: new Cesium.Cartesian2(0, -25)
         }
     });
 
-    // Timeline Sync
     const start = flightStartTime;
     const stop = Cesium.JulianDate.addSeconds(start, telemetry[telemetry.length-1].time_offset, new Cesium.JulianDate());
     
@@ -141,18 +142,14 @@ function visualizeFlight(telemetry, flightStartTime) {
     viewer.clock.stopTime = stop.clone();
     viewer.clock.currentTime = start.clone();
     viewer.clock.clockRange = Cesium.ClockRange.LOOP_STOP;
-    viewer.clock.multiplier = 1;
     viewer.timeline.zoomTo(start, stop);
 
-    // Zoom to data
-    viewer.zoomTo(currentEntity, new Cesium.HeadingPitchRange(Cesium.Math.toRadians(-90), Cesium.Math.toRadians(-30), 5000));
+    viewer.zoomTo(currentEntity);
     
-    // HUD Listener
+    // HUD Update
     viewer.clock.onTick.addEventListener(() => {
         const time = viewer.clock.currentTime;
         const offset = Cesium.JulianDate.secondsDifference(time, flightStartTime);
-        
-        // Efficient HUD searching
         const nearest = telemetry.reduce((prev, curr) => 
             Math.abs(curr.time_offset - offset) < Math.abs(prev.time_offset - offset) ? curr : prev
         );
@@ -165,5 +162,7 @@ function visualizeFlight(telemetry, flightStartTime) {
     });
 }
 
-// Kickoff
-loadSorties();
+// Initial API Load
+if (viewer) {
+    loadSorties();
+}
