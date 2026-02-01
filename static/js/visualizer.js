@@ -30,9 +30,11 @@ try {
     Cesium.Ion.defaultAccessToken = ''; 
     viewer.scene.contentRating = undefined; 
     viewer.scene.globe.baseColor = Cesium.Color.BLACK; 
-    viewer.scene.sun.show = false;
-    viewer.scene.moon.show = false;
-    viewer._cesiumWidget._creditContainer.style.display = "none"; 
+    if (viewer.scene.sun) viewer.scene.sun.show = false;
+    if (viewer.scene.moon) viewer.scene.moon.show = false;
+    if (viewer._cesiumWidget && viewer._cesiumWidget._creditContainer) {
+        viewer._cesiumWidget._creditContainer.style.display = "none"; 
+    }
     console.log("Cesium Viewer initialized successfully.");
 } catch (error) {
     console.error("Failed to initialize Cesium Viewer:", error);
