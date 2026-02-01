@@ -11,17 +11,21 @@ try {
         infoBox: false,
         selectionIndicator: false,
         navigationHelpButton: false,
-        baseLayerPicker: false, // Disable this to prevent accidental Ion resource loading
+        baseLayerPicker: false,
         geocoder: false,
         homeButton: true,
         sceneModePicker: true,
         shouldAnimate: true,
+        useDefaultRenderLoop: true,
+        showRenderLoopErrors: true,
         // Completely bypass Cesium Ion to prevent 401 errors
         terrainProvider: new Cesium.EllipsoidTerrainProvider(),
         baseLayer: new Cesium.ImageryLayer(new Cesium.TileMapServiceImageryProvider({
             url: Cesium.buildModuleUrl('Assets/Textures/NaturalEarthII')
         }))
     });
+    viewer.scene.globe.baseColor = Cesium.Color.BLACK; 
+    viewer._cesiumWidget._creditContainer.style.display = "none"; // Hide credit to avoid Ion links
     console.log("Cesium Viewer initialized successfully.");
 } catch (error) {
     console.error("Failed to initialize Cesium Viewer:", error);
