@@ -11,7 +11,7 @@ try {
         infoBox: false,
         selectionIndicator: false,
         navigationHelpButton: false,
-        baseLayerPicker: true,
+        baseLayerPicker: false, // Disable this to prevent accidental Ion resource loading
         geocoder: false,
         homeButton: true,
         sceneModePicker: true,
