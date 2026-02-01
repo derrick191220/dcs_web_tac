@@ -103,9 +103,10 @@ class AcmiParser:
             conn.close()
 
 if __name__ == "__main__":
-    from .db_init import init_db
-    init_db()
+    import db_init
+    db_init.init_db()
     parser = AcmiParser()
     # Testing with sample if exists
-    if os.path.exists('data/samples/real_flight.acmi'):
-        parser.parse_file('data/samples/real_flight.acmi')
+    sample_file = 'data/samples/full_flight_sim.acmi'
+    if os.path.exists(sample_file):
+        parser.parse_file(sample_file)
