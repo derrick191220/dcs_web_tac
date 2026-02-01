@@ -16,8 +16,11 @@ try {
         homeButton: true,
         sceneModePicker: true,
         shouldAnimate: true,
-        // Disable default Ion terrain to avoid 401 and GPU stalls
+        // Completely bypass Cesium Ion to prevent 401 errors
         terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+        baseLayer: new Cesium.ImageryLayer(new Cesium.TileMapServiceImageryProvider({
+            url: Cesium.buildModuleUrl('Assets/Textures/NaturalEarthII')
+        }))
     });
     console.log("Cesium Viewer initialized successfully.");
 } catch (error) {
