@@ -13,6 +13,8 @@ This document is **actionable**: it defines scope, flows, API contracts, data mo
 - Provide high‑fidelity 3D playback, telemetry HUD, and analysis tools.
 - Be stable, reproducible, and deployable (Render).
 
+**Reference baseline**: Tacview **1.9.5** (current) and **1.9.6 Beta 1** (latest beta) per Tacview official documentation index (updated 2023‑07‑14).
+
 ## 2. Core Principles
 1. **Technical Excellence**: High‑performance backend (FastAPI) + expert‑level 3D (Cesium.js).
 2. **Friendly UI**: Tailwind CSS, clear information hierarchy.
@@ -186,6 +188,13 @@ This document is **actionable**: it defines scope, flows, API contracts, data mo
 
 ## 12. QA & Release
 - Follow `docs/qa.md` (Xiao Ou Loop v2.0)
+
+## 13. Self‑Review Checklist (Doc Quality)
+- ✅ Reference Tacview official docs (version baseline recorded)
+- ✅ API contracts include errors and parameters
+- ✅ Units/time semantics explicitly defined
+- ✅ Performance targets and indexes specified
+- ✅ Acceptance criteria are testable
 
 ---
 
