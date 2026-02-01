@@ -160,13 +160,18 @@ function visualizeFlight(telemetry, start) {
         const position = Cesium.Cartesian3.fromDegrees(point.lon, point.lat, point.alt);
         positions.addSample(time, position);
         
-        // Heading offset to correct model forward axis (model faces backward by default)
-        const headingOffset = Cesium.Math.toRadians(180);
-        const hpr = new Cesium.HeadingPitchRoll(
-            Cesium.Math.toRadians(point.yaw || 0) + headingOffset,
-            Cesium.Math.toRadians(point.pitch || 0),
-            Cesium.Math.toRadians(point.roll || 0)
-        );
+        // Convert ACMI NED angles to Cesium ENU heading/pitch/roll
+        // NED -> ENU: heading = 90° - yaw, pitch = -pitch, roll = roll
+        const headingOffset = Cesium.Math.toRadians(180); // model forward axis fix
+        const yawDeg = point.yaw || 0;
+        const pitchDeg = point.pitch || 0;
+        const rollDeg = point.roll || 0;
+
+        const heading = Cesium.Math.toRadians(90 - yawDeg) + headingOffset;
+        const pitch = Cesium.Math.toRadians(-pitchDeg);
+        const roll = Cesium.Math.toRadians(rollDeg);
+
+        const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
         const orientation = Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
         orientations.addSample(time, orientation);
     });
