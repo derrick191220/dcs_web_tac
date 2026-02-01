@@ -1,0 +1,9 @@
+0,ReferenceTime=2026-02-01T00:00:00Z
+0,RecordingPlayerName=Derrick
+0,MissionTitle=Training_Caucasus
+#0.00
+1,T=38.12345|45.67890|500|10|5|350,Name=F-16C,Type=Aircraft+FixedWing
+#1.00
+1,T=38.12350|45.67895|510|12|6|351,IAS=255,G=1.2
+#2.00
+1,T=38.12355|45.67900|520|15|8|352,IAS=260,G=1.5
