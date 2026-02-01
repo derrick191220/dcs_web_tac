@@ -22,10 +22,19 @@ try {
         // Use OpenStreetMap as default - High Visibility & No Token Needed
         baseLayer: new Cesium.ImageryLayer(new Cesium.OpenStreetMapImageryProvider({
             url : 'https://a.tile.openstreetmap.org/'
-        }))
+        })),
+        skyBox: false,
+        skyAtmosphere: false,
+        requestRenderMode: false,
+        maximumRenderTimeChange: Infinity
     });
     Cesium.Ion.defaultAccessToken = ''; 
     viewer.scene.globe.baseColor = Cesium.Color.BLACK; 
+    if (viewer.scene.sun) viewer.scene.sun.show = false;
+    if (viewer.scene.moon) viewer.scene.moon.show = false;
+    if (viewer._cesiumWidget && viewer._cesiumWidget._creditContainer) {
+        viewer._cesiumWidget._creditContainer.style.display = "none"; 
+    }
     console.log("Cesium Viewer initialized with OSM imagery.");
 } catch (error) {
     console.error("Failed to initialize Cesium Viewer:", error);
