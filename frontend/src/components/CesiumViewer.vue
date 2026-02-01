@@ -160,8 +160,10 @@ function visualizeFlight(telemetry, start) {
         const position = Cesium.Cartesian3.fromDegrees(point.lon, point.lat, point.alt);
         positions.addSample(time, position);
         
+        // Heading offset to correct model forward axis (model faces backward by default)
+        const headingOffset = Cesium.Math.toRadians(180);
         const hpr = new Cesium.HeadingPitchRoll(
-            Cesium.Math.toRadians(point.yaw || 0),
+            Cesium.Math.toRadians(point.yaw || 0) + headingOffset,
             Cesium.Math.toRadians(point.pitch || 0),
             Cesium.Math.toRadians(point.roll || 0)
         );
@@ -178,10 +180,12 @@ function visualizeFlight(telemetry, start) {
             maximumScale: 20000
         },
         path: {
-            resolution: 1,
-            material: new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.25, color: Cesium.Color.GOLD }),
-            width: 10,
-            trailTime: 1000000
+            show: true,
+            leadTime: 0,
+            trailTime: Number.POSITIVE_INFINITY,
+            material: Cesium.Color.YELLOW,
+            width: 3,
+            resolution: 1
         }
     });
     
