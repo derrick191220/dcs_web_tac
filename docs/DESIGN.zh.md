@@ -70,7 +70,20 @@
 
 ---
 
-## 6. API 契约（V1）
+## 6. 工程标准与合规
+- **ACMI 2.1/2.2**：字段解析、时间语义、对象元数据、坐标处理遵循 Tacview ACMI 规范。
+- **坐标标准**：WGS‑84 经纬度（度），高度 MSL（米）。
+- **姿态标准**：roll/pitch/yaw 单位为度（右手系），转换为 Cesium HPR。
+- **单位标准**：IAS 节，Altitude 米，Time 秒。
+- **数据完整性**：不静默丢数据，异常字段置 0 并记录告警。
+- **可追溯性**：每次解析产生 job 记录（状态/耗时/错误）。
+
+## 7. API 契约（V1）
+### 错误返回（全局）
+```json
+{ "error": "string", "details": {"field": "reason"} }
+```
+
 ### `GET /api/`
 ```json
 { "status": "DCS Web‑Tac Online", "version": "0.2.x" }
@@ -78,7 +91,8 @@
 
 ### `GET /api/sorties`
 ```json
-[{"id":1,"mission_name":"...","pilot_name":"...","aircraft_type":"...","start_time":"...","map_name":null}]
+[{"id":1,"mission_name":"...","pilot_name":"...","aircraft_type":"...","start_time":"...","map_name":null,
+  "parse_status":"done"}]
 ```
 
 ### `GET /api/sorties/{id}/objects`
@@ -86,7 +100,8 @@
 [{"id":10,"sortie_id":1,"obj_id":"b1100","name":"F‑16C_50","type":"Air+FixedWing","coalition":"Blue","pilot":"Blade"}]
 ```
 
-### `GET /api/sorties/{id}/telemetry?obj_id=...`
+### `GET /api/sorties/{id}/telemetry`
+**参数**：`obj_id`, `start`, `end`, `downsample`, `limit`
 ```json
 [{"obj_id":"b1100","time_offset":1.0,"lat":25.0,"lon":54.4,"alt":1000,
   "roll":0.1,"pitch":0.0,"yaw":180.0,"ias":350,"g_force":1.1}]
@@ -94,31 +109,42 @@
 
 ### `POST /api/upload`
 ```json
-{ "message": "Successfully uploaded <filename>" }
+{ "message": "Successfully uploaded <filename>", "job_id": "abc123" }
+```
+
+### `GET /api/jobs/{id}`
+```json
+{ "id":"abc123", "sortie_id":1, "status":"running", "progress_pct":42, "error":null }
 ```
 
 ---
 
-## 7. 数据模型
-### 7.1 Sorties
-- id, mission_name, pilot_name, aircraft_type, start_time, map_name
+## 8. 数据模型
+### 8.1 Sorties
+- id, mission_name, pilot_name, aircraft_type, start_time, map_name, parse_status
 
-### 7.2 Objects
+### 8.2 Objects
 - id, sortie_id, obj_id, name, type, coalition, pilot
 
-### 7.3 Telemetry
+### 8.3 Telemetry
 - id, sortie_id, obj_id, time_offset
 - lat, lon, alt
 - roll, pitch, yaw
 - ias, mach, g_force, fuel_remaining
 
+### 8.4 Parse Jobs
+- id, sortie_id, status, progress_pct, error, created_at, updated_at
+
 ---
 
-## 8. 非功能指标
+## 9. 非功能指标
 - **上传大小**：≥100MB
 - **解析时间**：100MB < 60s（Render）
 - **交互延迟**：<200ms
 - **控制台错误**：0 致命错误
+- **遥测查询**：支持窗口查询与降采样
+- **索引**：telemetry(sortie_id,obj_id,time_offset), objects(sortie_id)
+- **安全**：上传大小限制、类型白名单、可选 token 鉴权
 
 ---
 

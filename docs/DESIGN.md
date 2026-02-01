@@ -70,7 +70,20 @@ This document is **actionable**: it defines scope, flows, API contracts, data mo
 
 ---
 
-## 6. API Contracts (V1)
+## 6. Engineering Standards & Compliance
+- **ACMI 2.1/2.2**: Field parsing, time semantics, object metadata, and coordinate handling must follow Tacview ACMI spec.
+- **Coordinate Standard**: WGS‑84 geodetic lat/lon (deg), altitude MSL (meters).
+- **Attitude Standard**: roll/pitch/yaw in degrees (right‑handed), converted to Cesium HPR.
+- **Unit Standard**: IAS in knots, altitude meters, time in seconds.
+- **Data Integrity**: never drop records silently; invalid fields default to 0 and log warnings.
+- **Traceability**: each parse creates a job record with status, duration, and error reason.
+
+## 7. API Contracts (V1)
+### Error Schema (all endpoints)
+```json
+{ "error": "string", "details": {"field": "reason"} }
+```
+
 ### `GET /api/`
 **Response**
 ```json
@@ -81,7 +94,8 @@ This document is **actionable**: it defines scope, flows, API contracts, data mo
 **Response**
 ```json
 [
-  {"id":1,"mission_name":"...","pilot_name":"...","aircraft_type":"...","start_time":"...","map_name":null}
+  {"id":1,"mission_name":"...","pilot_name":"...","aircraft_type":"...","start_time":"...","map_name":null,
+   "parse_status":"done"}
 ]
 ```
 
@@ -93,7 +107,8 @@ This document is **actionable**: it defines scope, flows, API contracts, data mo
 ]
 ```
 
-### `GET /api/sorties/{id}/telemetry?obj_id=...`
+### `GET /api/sorties/{id}/telemetry`
+**Query Params**: `obj_id`, `start`, `end`, `downsample`, `limit`
 **Response**
 ```json
 [
@@ -106,31 +121,42 @@ This document is **actionable**: it defines scope, flows, API contracts, data mo
 **Request**: multipart/form‑data (`file`)
 **Response**
 ```json
-{ "message": "Successfully uploaded <filename>" }
+{ "message": "Successfully uploaded <filename>", "job_id": "abc123" }
+```
+
+### `GET /api/jobs/{id}`
+```json
+{ "id":"abc123", "sortie_id":1, "status":"running", "progress_pct":42, "error":null }
 ```
 
 ---
 
-## 7. Data Model
-### 7.1 Sorties
-- id, mission_name, pilot_name, aircraft_type, start_time, map_name
+## 8. Data Model
+### 8.1 Sorties
+- id, mission_name, pilot_name, aircraft_type, start_time, map_name, parse_status
 
-### 7.2 Objects
+### 8.2 Objects
 - id, sortie_id, obj_id, name, type, coalition, pilot
 
-### 7.3 Telemetry
+### 8.3 Telemetry
 - id, sortie_id, obj_id, time_offset
 - lat, lon, alt
 - roll, pitch, yaw
 - ias, mach, g_force, fuel_remaining
 
+### 8.4 Parse Jobs
+- id, sortie_id, status, progress_pct, error, created_at, updated_at
+
 ---
 
-## 8. Non‑Functional Targets
+## 9. Non‑Functional Targets
 - **Upload size**: >= 100MB ACMI
 - **Parse time**: < 60s for 100MB on Render
 - **UI responsiveness**: < 200ms interaction latency
 - **Browser errors**: 0 fatal console errors
+- **Telemetry access**: supports windowed query and downsampling
+- **Indexes**: telemetry(sortie_id,obj_id,time_offset), objects(sortie_id)
+- **Security**: upload size limit, content‑type allowlist, optional token auth
 
 ---
 
