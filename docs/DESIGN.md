@@ -166,7 +166,20 @@ This document is **actionable**: it defines scope, flows, API contracts, data mo
 
 ---
 
-## 9. Non‑Functional Targets
+## 9. Tech Stack
+- **Backend**: FastAPI + SQLite (Render), optional Postgres for scale
+- **Frontend**: Vue 3 + Vite + Cesium.js + Tailwind CSS
+- **Diagnostics**: pytest + Playwright + doctor.py
+
+## 10. Technical Challenges & Mitigations
+1. **Huge telemetry volume** → windowed queries + downsampling + indexes
+2. **Large upload parsing** → background jobs + progress tracking + chunked parse
+3. **Cesium performance** → decimated samples + lazy rendering
+4. **Time/Unit correctness** → strict unit conversion + validation
+5. **Multi‑aircraft filtering** → object index + server‑side filters
+6. **Render cold starts** → robust init + retry logic
+
+## 11. Non‑Functional Targets
 - **Upload size**: >= 100MB ACMI
 - **Parse time**: < 60s for 100MB on Render
 - **UI responsiveness**: < 200ms interaction latency
