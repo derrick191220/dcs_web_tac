@@ -91,15 +91,15 @@ def process_acmi(file_path: str):
     acmi_parser = parser.AcmiParser()
     acmi_parser.parse_file(file_path)
 
-# Mount static files at the end to avoid shadowing /api/
-# In Render, we run from the root, so static/ is at ./static
-if os.path.exists("static"):
-    app.mount("/", StaticFiles(directory="static", html=True), name="static")
+# Mount static files using absolute paths to be environment-agnostic
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "static"))
+
+if os.path.exists(STATIC_DIR):
+    app_logger.info(f"Mounting static files from {STATIC_DIR}")
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 else:
-    # Fallback for different directory structures
-    alt_static = os.path.join(os.path.dirname(__file__), "..", "static")
-    if os.path.exists(alt_static):
-        app.mount("/", StaticFiles(directory=alt_static, html=True), name="static")
+    app_logger.error(f"Static directory NOT FOUND at {STATIC_DIR}")
 
 if __name__ == "__main__":
     import uvicorn
