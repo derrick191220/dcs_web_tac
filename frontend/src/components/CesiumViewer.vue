@@ -7,7 +7,8 @@
             <h1 class="text-xl font-semibold tracking-tight">DCS Web-Tac <span class="text-xs text-gray-400">v0.3.0 (Vue)</span></h1>
         </div>
         <div class="flex space-x-4">
-            <button class="bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded text-sm transition font-medium">Upload ACMI</button>
+            <input ref="fileInput" type="file" class="hidden" @change="onFileSelected" accept=".acmi,.zip,.gz,.zip.acmi" />
+            <button @click="triggerUpload" class="bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded text-sm transition font-medium">Upload ACMI</button>
             <div class="h-8 w-px bg-gray-700"></div>
             <span class="text-sm text-gray-300 self-center">
                 Pilot: {{ currentObject?.pilot || 'Unknown' }} | {{ currentObject?.name || 'Aircraft' }}
@@ -133,6 +134,7 @@ function initCesium() {
 
 let activeTelemetry = [];
 let flightStartTime = null;
+const fileInput = ref(null);
 
 async function loadSorties() {
     try {
@@ -185,6 +187,27 @@ async function loadTelemetry(sortieId, objId) {
     flightStartTime = Cesium.JulianDate.fromIso8601(rawStart);
 
     visualizeFlight(activeTelemetry, flightStartTime);
+}
+
+function triggerUpload() {
+    if (fileInput.value) fileInput.value.click();
+}
+
+async function onFileSelected(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        await fetch('/api/upload', { method: 'POST', body: formData });
+        // refresh sorties list after upload
+        await loadSorties();
+    } catch (err) {
+        console.error('Upload failed', err);
+    } finally {
+        if (fileInput.value) fileInput.value.value = '';
+    }
 }
 
 function visualizeFlight(telemetry, start) {

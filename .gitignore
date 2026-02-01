@@ -7,3 +7,4 @@ venv/
 data/samples/*.acmi
 data/samples/*.zip.acmi
 data/app.log
+data/uploads/
