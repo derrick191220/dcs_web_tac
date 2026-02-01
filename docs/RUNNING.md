@@ -26,6 +26,9 @@
 3. Open your browser and navigate to:
    [http://localhost:8000](http://localhost:8000)
 
+## QA / Release Flow
+See `docs/qa.md` (Xiao Ou Loop v2.0).
+
 ## Features to try
 - **Upload**: Drag and drop your `.acmi` files to the "Upload" button (mock UI logic).
 - **View**: Select a mission from the sidebar to see the 3D trajectory in Cesium.

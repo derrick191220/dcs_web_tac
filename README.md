@@ -11,3 +11,6 @@ A B/S architecture flight data analysis and playback tool for DCS World.
 - **Backend**: Python (FastAPI)
 - **Database**: SQLite
 - **Frontend**: Vue.js / Cesium.js (planned)
+
+## QA / Release Flow
+See `docs/qa.md` (Xiao Ou Loop v2.0).

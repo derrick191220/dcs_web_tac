@@ -1,69 +1,17 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DCS Web-Tac | Flight Visualizer</title>
-    <!-- Use a specific stable version of Cesium -->
-    <script src="https://cesium.com/downloads/cesiumjs/releases/1.110/Build/Cesium/Cesium.js"></script>
-    <link href="https://cesium.com/downloads/cesiumjs/releases/1.110/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
-    <script>
-        window.CESIUM_BASE_URL = 'https://cesium.com/downloads/cesiumjs/releases/1.110/Build/Cesium/';
-    </script>
-    <!-- OpenStreetMap for clear visuals without Ion Token -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Simplified Tailwind for production-like behavior without CDN warnings -->
-    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body class="bg-gray-900 text-white overflow-hidden">
-    <script src="js/diagnostic.js"></script>
-    <!-- Header -->
-    <header class="h-16 border-b border-gray-700 flex items-center px-6 justify-between bg-gray-800">
-        <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center font-bold">W</div>
-            <h1 class="text-xl font-semibold tracking-tight">DCS Web-Tac <span class="text-xs text-gray-400">v0.2.9</span></h1>
-        </div>
-        <div class="flex space-x-4">
-            <button id="uploadBtn" class="bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded text-sm transition font-medium">Upload ACMI</button>
-            <div class="h-8 w-px bg-gray-700"></div>
-            <span class="text-sm text-gray-300 self-center">Pilot: Derrick</span>
-        </div>
-    </header>
+  <head>
+    <link rel="stylesheet" href="/cesium/Widgets/widgets.css">
+    <script src="/cesium/Cesium.js"></script>
 
-    <main class="flex h-screen" style="height: calc(100vh - 4rem);">
-        <!-- Sidebar: Sortie List -->
-        <aside class="w-80 border-r border-gray-700 bg-gray-800 overflow-y-auto">
-            <div class="p-4 border-b border-gray-700">
-                <h2 class="text-sm font-bold uppercase text-gray-400">Sortie History</h2>
-            </div>
-            <div id="sortieList" class="divide-y divide-gray-700">
-                <div class="p-4 text-center text-gray-500 text-sm italic">Loading missions...</div>
-            </div>
-        </aside>
-
-        <!-- Main View: Cesium Container -->
-        <section class="flex-1 relative">
-            <div id="cesiumContainer" class="w-full h-full"></div>
-            
-            <!-- HUD / Data Overlay -->
-            <div class="absolute top-4 right-4 bg-black bg-opacity-60 p-4 rounded-lg border border-white border-opacity-10 w-64 pointer-events-none">
-                <h3 class="text-xs font-bold text-blue-400 mb-2 uppercase">Telemetry Data</h3>
-                <div class="grid grid-cols-2 gap-2 text-sm">
-                    <span class="text-gray-400">Alt:</span> <span id="hud-alt">0 m</span>
-                    <span class="text-gray-400">Speed:</span> <span id="hud-speed">0 kts</span>
-                    <span class="text-gray-400">G-Force:</span> <span id="hud-g">1.0</span>
-                <div class="grid grid-cols-2 gap-2 text-[10px] border-t border-gray-700 pt-2 mt-2">
-                    <span class="text-gray-500">Lat:</span> <span id="hud-lat" class="text-gray-300">0.0000</span>
-                    <span class="text-gray-500">Lon:</span> <span id="hud-lon" class="text-gray-300">0.0000</span>
-                    <span class="text-gray-500">Pitch:</span> <span id="hud-pitch" class="text-gray-300">0°</span>
-                    <span class="text-gray-500">Roll:</span> <span id="hud-roll" class="text-gray-300">0°</span>
-                    <span class="text-gray-500">Yaw:</span> <span id="hud-yaw" class="text-gray-300">0°</span>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <script src="js/visualizer.js"></script>
-</body>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend</title>
+    <script type="module" crossorigin src="/assets/index-CtD6O4kY.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Czw6PrBs.css">
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
 </html>
