@@ -18,11 +18,26 @@ def init_db(db_path='data/flight_data.db'):
         )
     ''')
     
+    # Objects Table (aircraft/units)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS objects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sortie_id INTEGER,
+            obj_id TEXT,
+            name TEXT,
+            type TEXT,
+            coalition TEXT,
+            pilot TEXT,
+            FOREIGN KEY (sortie_id) REFERENCES sorties (id)
+        )
+    ''')
+
     # Telemetry Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS telemetry (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             sortie_id INTEGER,
+            obj_id TEXT,
             time_offset REAL,
             lat REAL, lon REAL, alt REAL,
             roll REAL, pitch REAL, yaw REAL,
@@ -32,7 +47,13 @@ def init_db(db_path='data/flight_data.db'):
             FOREIGN KEY (sortie_id) REFERENCES sorties (id)
         )
     ''')
-    
+
+    # Lightweight migration: add missing columns if DB already exists
+    cursor.execute("PRAGMA table_info(telemetry)")
+    cols = {row[1] for row in cursor.fetchall()}
+    if "obj_id" not in cols:
+        cursor.execute("ALTER TABLE telemetry ADD COLUMN obj_id TEXT")
+
     conn.commit()
     conn.close()
     print(f"Database initialized at {db_path}")

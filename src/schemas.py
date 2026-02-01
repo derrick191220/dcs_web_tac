@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional, List
 
 class TelemetryBase(BaseModel):
+    obj_id: Optional[str] = None
     time_offset: float
     lat: float
     lon: float
@@ -24,4 +25,16 @@ class SortieBase(BaseModel):
 
 class Sortie(SortieBase):
     id: int
+    model_config = {"from_attributes": True}
+
+class ObjectBase(BaseModel):
+    obj_id: str
+    name: Optional[str] = None
+    type: Optional[str] = None
+    coalition: Optional[str] = None
+    pilot: Optional[str] = None
+
+class Object(ObjectBase):
+    id: int
+    sortie_id: int
     model_config = {"from_attributes": True}

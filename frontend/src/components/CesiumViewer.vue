@@ -9,15 +9,29 @@
         <div class="flex space-x-4">
             <button class="bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded text-sm transition font-medium">Upload ACMI</button>
             <div class="h-8 w-px bg-gray-700"></div>
-            <span class="text-sm text-gray-300 self-center">Pilot: Derrick</span>
+            <span class="text-sm text-gray-300 self-center">
+                Pilot: {{ currentObject?.pilot || 'Unknown' }} | {{ currentObject?.name || 'Aircraft' }}
+            </span>
         </div>
     </header>
 
     <main class="flex flex-1 overflow-hidden">
         <!-- Sidebar -->
         <aside class="w-80 border-r border-gray-700 bg-gray-800 flex flex-col">
-            <div class="p-4 border-b border-gray-700">
+            <div class="p-4 border-b border-gray-700 space-y-3">
                 <h2 class="text-sm font-bold uppercase text-gray-400">Sortie History</h2>
+                <div>
+                    <label class="text-[10px] uppercase text-gray-500">Aircraft</label>
+                    <select
+                      class="mt-1 w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm"
+                      v-model="currentObject"
+                      @change="onObjectChange"
+                    >
+                      <option v-for="o in objects" :key="o.obj_id" :value="o">
+                        {{ o.name || o.obj_id }} ({{ o.pilot || 'Unknown' }})
+                      </option>
+                    </select>
+                </div>
             </div>
             <div class="flex-1 overflow-y-auto divide-y divide-gray-700">
                 <div v-if="loading" class="p-4 text-center text-gray-500 text-sm italic">Loading missions...</div>
@@ -68,6 +82,8 @@ import * as Cesium from 'cesium';
 // State
 const sorties = ref([]);
 const currentSortie = ref(null);
+const objects = ref([]);
+const currentObject = ref(null);
 const loading = ref(true);
 const hud = reactive({
     alt: 0, ias: 0, g: 1.0,
@@ -124,7 +140,7 @@ async function loadSorties() {
         sorties.value = await res.json();
         
         if (sorties.value.length > 0) {
-            selectSortie(sorties.value[0]);
+            await selectSortie(sorties.value[0]);
         }
     } catch (e) {
         console.error("API Error", e);
@@ -133,20 +149,42 @@ async function loadSorties() {
     }
 }
 
+async function loadObjects(sortieId) {
+    const res = await fetch(`/api/sorties/${sortieId}/objects`);
+    objects.value = await res.json();
+    if (objects.value.length > 0) {
+        currentObject.value = objects.value[0];
+    } else {
+        currentObject.value = null;
+    }
+}
+
 async function selectSortie(sortie) {
     currentSortie.value = sortie;
     try {
-        const res = await fetch(`/api/sorties/${sortie.id}/telemetry`);
-        activeTelemetry = await res.json();
-        
-        let rawStart = sortie.start_time;
-        if (!rawStart.includes('Z')) rawStart += 'Z';
-        flightStartTime = Cesium.JulianDate.fromIso8601(rawStart);
-        
-        visualizeFlight(activeTelemetry, flightStartTime);
+        await loadObjects(sortie.id);
+        if (currentObject.value) {
+            await loadTelemetry(sortie.id, currentObject.value.obj_id);
+        }
     } catch (e) {
         console.error("Telemetry fetch failed", e);
     }
+}
+
+async function onObjectChange() {
+    if (!currentSortie.value || !currentObject.value) return;
+    await loadTelemetry(currentSortie.value.id, currentObject.value.obj_id);
+}
+
+async function loadTelemetry(sortieId, objId) {
+    const res = await fetch(`/api/sorties/${sortieId}/telemetry?obj_id=${objId}`);
+    activeTelemetry = await res.json();
+
+    let rawStart = currentSortie.value.start_time;
+    if (!rawStart.includes('Z')) rawStart += 'Z';
+    flightStartTime = Cesium.JulianDate.fromIso8601(rawStart);
+
+    visualizeFlight(activeTelemetry, flightStartTime);
 }
 
 function visualizeFlight(telemetry, start) {

@@ -66,11 +66,27 @@ def list_sorties():
         rows = cursor.execute("SELECT * FROM sorties ORDER BY start_time DESC").fetchall()
         return [dict(row) for row in rows]
 
-@app.get("/api/sorties/{sortie_id}/telemetry", response_model=List[schemas.TelemetryBase], tags=["Data"])
-def get_telemetry(sortie_id: int):
+@app.get("/api/sorties/{sortie_id}/objects", response_model=List[schemas.Object], tags=["Data"])
+def list_objects(sortie_id: int):
     with database.get_db() as db:
         cursor = db.cursor()
-        rows = cursor.execute("SELECT * FROM telemetry WHERE sortie_id = ? ORDER BY time_offset", (sortie_id,)).fetchall()
+        rows = cursor.execute("SELECT * FROM objects WHERE sortie_id = ? ORDER BY name", (sortie_id,)).fetchall()
+        return [dict(row) for row in rows]
+
+@app.get("/api/sorties/{sortie_id}/telemetry", response_model=List[schemas.TelemetryBase], tags=["Data"])
+def get_telemetry(sortie_id: int, obj_id: str | None = None):
+    with database.get_db() as db:
+        cursor = db.cursor()
+        if obj_id:
+            rows = cursor.execute(
+                "SELECT * FROM telemetry WHERE sortie_id = ? AND obj_id = ? ORDER BY time_offset",
+                (sortie_id, obj_id)
+            ).fetchall()
+        else:
+            rows = cursor.execute(
+                "SELECT * FROM telemetry WHERE sortie_id = ? ORDER BY time_offset",
+                (sortie_id,)
+            ).fetchall()
         if not rows:
             raise HTTPException(status_code=404, detail="Sortie data not found")
         return [dict(row) for row in rows]
