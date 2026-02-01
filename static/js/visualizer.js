@@ -130,8 +130,8 @@ function visualizeFlight(telemetry, flightStartTime) {
         position: positions,
         orientation: orientations, // 使用遥测数据中的真实姿态
         model: {
-            // Updated to use a public CDN link for a realistic jet model
-            uri: 'https://raw.githubusercontent.com/derrick191220/dcs_web_tac/main/static/models/f16.glb',
+            // Updated to use local static asset instead of external URL
+            uri: 'models/f16.glb',
             minimumPixelSize: 128,
             maximumScale: 20000
         },

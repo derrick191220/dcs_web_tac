@@ -9,29 +9,43 @@ from . import schemas, database, parser, db_init, logger
 # Use the structured logger
 app_logger = logger.logger
 
-app = FastAPI(
-    title="DCS Web-Tac API",
-    description="Professional flight data analysis backend for DCS World.",
-    version="0.2.3"
-)
+from contextlib import asynccontextmanager
 
-# Initialize database on startup
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
     app_logger.info("System starting up...")
     os.makedirs("data/uploads", exist_ok=True)
     db_init.init_db()
     try:
         with database.get_db() as db:
-            count = db.cursor().execute("SELECT count(*) FROM sorties").fetchone()[0]
-            if count == 0:
-                sample_path = os.path.join("data", "samples", "full_flight_sim.acmi")
-                if os.path.exists(sample_path):
-                    app_logger.info(f"Loading default sample from {sample_path}")
-                    acmi_parser = parser.AcmiParser()
-                    acmi_parser.parse_file(sample_path)
+            cursor = db.cursor()
+            # Ensure table exists (init_db does it, but double check is harmless)
+            try:
+                count = cursor.execute("SELECT count(*) FROM sorties").fetchone()[0]
+                if count == 0:
+                    sample_path = os.path.join("data", "samples", "full_flight_sim.acmi")
+                    if os.path.exists(sample_path):
+                        app_logger.info(f"Loading default sample from {sample_path}")
+                        acmi_parser = parser.AcmiParser()
+                        acmi_parser.parse_file(sample_path)
+            except Exception as inner_e:
+                app_logger.warning(f"DB check skipped: {inner_e}")
     except Exception as e:
         app_logger.error(f"Startup DB Error: {e}")
+    
+    yield
+    # Shutdown logic (if any)
+
+app = FastAPI(
+    title="DCS Web-Tac API",
+    description="Professional flight data analysis backend for DCS World.",
+    version="0.2.3",
+    lifespan=lifespan
+)
+
+# Initialize database on startup removed (migrated to lifespan)
+
 
 app.add_middleware(
     CORSMiddleware,

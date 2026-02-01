@@ -10,8 +10,10 @@ def test_acmi_parser_integrity():
     if os.path.exists(test_db): os.remove(test_db)
     
     # Initialize DB
+    init_db(test_db)
+    # Note: Using the real init_db script is now correctly implemented
+    
     conn = sqlite3.connect(test_db)
-    # Note: Using the real init_db script but redirecting to test_db would be better
     # For simplicity in this test, we run the parser which creates its own
     parser = AcmiParser(db_path=test_db)
     
