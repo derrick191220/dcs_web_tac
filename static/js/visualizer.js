@@ -20,9 +20,7 @@ try {
         showRenderLoopErrors: true,
         // Completely bypass Cesium Ion to prevent 401 errors
         terrainProvider: new Cesium.EllipsoidTerrainProvider(),
-        baseLayer: new Cesium.ImageryLayer(new Cesium.TileMapServiceImageryProvider({
-            url: Cesium.buildModuleUrl('Assets/Textures/NaturalEarthII')
-        })),
+        baseLayer: new Cesium.ImageryLayer(new Cesium.GridImageryProvider()),
         skyBox: false,
         skyAtmosphere: false,
         baseLayerPicker: false,
