@@ -4,12 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DCS Web-Tac | Flight Visualizer</title>
-    <script>
-        window.CESIUM_BASE_URL = 'https://cesium.com/downloads/cesiumjs/releases/1.110/Build/Cesium/';
-    </script>
     <!-- Use a specific stable version of Cesium -->
     <script src="https://cesium.com/downloads/cesiumjs/releases/1.110/Build/Cesium/Cesium.js"></script>
     <link href="https://cesium.com/downloads/cesiumjs/releases/1.110/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <script>
+        window.CESIUM_BASE_URL = 'https://cesium.com/downloads/cesiumjs/releases/1.110/Build/Cesium/';
+    </script>
+    <!-- OpenStreetMap for clear visuals without Ion Token -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Simplified Tailwind for production-like behavior without CDN warnings -->
     <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
@@ -20,7 +22,7 @@
     <header class="h-16 border-b border-gray-700 flex items-center px-6 justify-between bg-gray-800">
         <div class="flex items-center space-x-3">
             <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center font-bold">W</div>
-            <h1 class="text-xl font-semibold tracking-tight">DCS Web-Tac <span class="text-xs text-gray-400">v0.2.5</span></h1>
+            <h1 class="text-xl font-semibold tracking-tight">DCS Web-Tac <span class="text-xs text-gray-400">v0.2.6</span></h1>
         </div>
         <div class="flex space-x-4">
             <button id="uploadBtn" class="bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded text-sm transition font-medium">Upload ACMI</button>

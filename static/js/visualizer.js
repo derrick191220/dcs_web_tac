@@ -11,31 +11,22 @@ try {
         infoBox: false,
         selectionIndicator: false,
         navigationHelpButton: false,
-        baseLayerPicker: false,
+        baseLayerPicker: true, 
         geocoder: false,
         homeButton: true,
         sceneModePicker: true,
         shouldAnimate: true,
         useDefaultRenderLoop: true,
         showRenderLoopErrors: true,
-        // Completely bypass Cesium Ion to prevent 401 errors
         terrainProvider: new Cesium.EllipsoidTerrainProvider(),
-        baseLayer: false,
-        skyBox: false,
-        skyAtmosphere: false,
-        baseLayerPicker: false,
-        requestRenderMode: false,
-        maximumRenderTimeChange: Infinity
+        // Use OpenStreetMap as default - High Visibility & No Token Needed
+        baseLayer: new Cesium.ImageryLayer(new Cesium.OpenStreetMapImageryProvider({
+            url : 'https://a.tile.openstreetmap.org/'
+        }))
     });
     Cesium.Ion.defaultAccessToken = ''; 
-    viewer.scene.contentRating = undefined; 
     viewer.scene.globe.baseColor = Cesium.Color.BLACK; 
-    if (viewer.scene.sun) viewer.scene.sun.show = false;
-    if (viewer.scene.moon) viewer.scene.moon.show = false;
-    if (viewer._cesiumWidget && viewer._cesiumWidget._creditContainer) {
-        viewer._cesiumWidget._creditContainer.style.display = "none"; 
-    }
-    console.log("Cesium Viewer initialized successfully.");
+    console.log("Cesium Viewer initialized with OSM imagery.");
 } catch (error) {
     console.error("Failed to initialize Cesium Viewer:", error);
     document.getElementById('cesiumContainer').innerHTML = `<div class="p-10 text-red-500">3D Engine Error: ${error.message}</div>`;
