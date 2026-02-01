@@ -82,7 +82,33 @@ This document is **actionable**: it defines scope, flows, API contracts, data mo
 
 ---
 
-## 6. Engineering Standards & Compliance
+## 6. Frontend UX/UI Design (V1)
+### 6.1 Layout
+- **Header**: project name, current aircraft, upload button, status indicator (parse job).
+- **Left Panel**: sortie list + filters + aircraft selector.
+- **Center**: Cesium 3D viewer + timeline controls.
+- **Right Panel**: HUD cards (altitude, IAS, G, attitude) + mini‑charts (optional).
+
+### 6.2 Key Components
+- **Upload ACMI Modal**: file picker, progress bar, status (queued/running/done/failed).
+- **Sortie List**: mission name, time, pilot, aircraft, map.
+- **Aircraft Selector**: dropdown + search (pilot/callsign).
+- **Timeline**: play/pause, speed (0.5x–8x), scrubber, current time.
+- **View Mode Toggle**: follow / free / top‑down.
+- **HUD**: altitude, IAS, G, roll/pitch/yaw, lat/lon.
+
+### 6.3 Interaction Rules
+- Upload → create job → show progress toast → refresh sorties on completion.
+- Selecting sortie loads aircraft list; selecting aircraft loads telemetry.
+- Timeline scrub updates HUD + model pose synchronously.
+- Empty states for no sorties / no aircraft / no telemetry.
+
+### 6.4 Visual Style
+- Dark aviation theme, high contrast.
+- Typography: compact numeric display for instruments.
+- Colors: Blue (friendly), Red (hostile), Yellow (current track).
+
+## 7. Engineering Standards & Compliance
 - **ACMI 2.1/2.2**: Field parsing, time semantics, object metadata, and coordinate handling must follow Tacview ACMI spec.
 - **Coordinate Standard**: WGS‑84 geodetic lat/lon (deg), altitude MSL (meters).
 - **Attitude Standard**: roll/pitch/yaw in degrees (right‑handed), converted to Cesium HPR.
