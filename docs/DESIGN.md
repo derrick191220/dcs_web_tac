@@ -1,34 +1,24 @@
 # Design Document - DCS Web-Tac
 
-## Project Goal
-To create a web-based alternative to Tacview for analyzing DCS World flight logs and real-time telemetry.
+## Core Principles
+1. **Technical Excellence**: Using FastAPI for a high-performance, asynchronous backend. Integrating Cesium.js for advanced 3D geospatial rendering.
+2. **Friendly UI**: Implementing a modern, clean dashboard using Vue 3 and Tailwind CSS.
+3. **Practical Functionality**: Focused on real-world flight debriefing needs: trajectory replay, energy management analysis, and engagement tracking.
+4. **Security & Reliability**: Secure database handling via SQLite with proper input sanitization. Automated CI/CD checks (planned).
+5. **Aviation Standards**: Data structures follow aviation norms (Lat/Lon/Alt, Roll/Pitch/Yaw). Parsing follows Tacview ACMI 2.1 specifications.
+6. **Documentation**: Maintaining clear documentation for both users and developers in the `/docs` folder.
 
 ## System Architecture
 ### 1. Data Collection Layer
-- **DCS Export Script**: A Lua script (`Export.lua`) that hooks into DCS World events.
-- **Python Telemetry Server**: Listens for UDP packets from DCS and stores them in SQLite.
+- **DCS Export Script**: Hooking into `onSimulationFrame` for high-fidelity data.
+- **Telemetry Server**: Async UDP listener.
 
 ### 2. Data Storage Layer
-- **SQLite**: Stores sortie metadata and high-frequency telemetry points.
+- **SQLite**: Local relational storage for ease of deployment and high portability.
 
-### 3. Backend Layer
-- **FastAPI**: Provides RESTful APIs for retrieving sorties and telemetry data.
+### 3. Backend Layer (API)
+- **FastAPI**: Serving telemetry data via REST and WebSockets (for live view).
 
-### 4. Frontend Layer (B/S)
-- **Dashboard**: Sortie list and summary statistics.
-- **Visualizer**: 3D playback of flight paths.
-
-## Database Schema
-### Sorties Table
-- `id`: PK
-- `mission_name`: String
-- `aircraft`: String
-- `start_time`: DateTime
-
-### Telemetry Table
-- `id`: PK
-- `sortie_id`: FK
-- `ts`: Float (offset from start)
-- `lat, lon, alt`: Float
-- `roll, pitch, yaw`: Float
-- `u, v, w`: Velocities
+### 4. Frontend Layer (UI)
+- **Cesium.js Visualizer**: Full 3D environment for flight replay.
+- **ECharts Dashboards**: Statistical analysis of flight performance (G-load, fuel, IAS).
