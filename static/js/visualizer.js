@@ -20,7 +20,7 @@ try {
         showRenderLoopErrors: true,
         // Completely bypass Cesium Ion to prevent 401 errors
         terrainProvider: new Cesium.EllipsoidTerrainProvider(),
-        baseLayer: new Cesium.ImageryLayer(new Cesium.GridImageryProvider()),
+        baseLayer: false, // Explicitly disable to avoid any imagery loading
         skyBox: false,
         skyAtmosphere: false,
         baseLayerPicker: false,
