@@ -19,15 +19,15 @@ try {
         useDefaultRenderLoop: true,
         showRenderLoopErrors: true,
         terrainProvider: new Cesium.EllipsoidTerrainProvider(),
-        // Use high-resolution satellite imagery for Tacview-like 3D feel
-        baseLayer: new Cesium.ImageryLayer(new Cesium.ArcGisMapServerImageryProvider({
-            url : 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
+        // Robust imagery source - ESRI Tiles via template
+        baseLayer: new Cesium.ImageryLayer(new Cesium.UrlTemplateImageryProvider({
+            url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            maximumLevel: 19
         }))
     });
     Cesium.Ion.defaultAccessToken = ''; 
     viewer.scene.globe.baseColor = Cesium.Color.BLACK; 
-    viewer.scene.globe.depthTestAgainstTerrain = true;
-    console.log("Cesium Viewer initialized with satellite imagery.");
+    console.log("Cesium Viewer initialized with satellite tiles.");
 } catch (error) {
     console.error("Failed to initialize Cesium Viewer:", error);
     document.getElementById('cesiumContainer').innerHTML = `<div class="p-10 text-red-500">3D Engine Error: ${error.message}</div>`;
