@@ -19,23 +19,15 @@ try {
         useDefaultRenderLoop: true,
         showRenderLoopErrors: true,
         terrainProvider: new Cesium.EllipsoidTerrainProvider(),
-        // Use OpenStreetMap as default - High Visibility & No Token Needed
-        baseLayer: new Cesium.ImageryLayer(new Cesium.OpenStreetMapImageryProvider({
-            url : 'https://a.tile.openstreetmap.org/'
-        })),
-        skyBox: false,
-        skyAtmosphere: false,
-        requestRenderMode: false,
-        maximumRenderTimeChange: Infinity
+        // Use high-resolution satellite imagery for Tacview-like 3D feel
+        baseLayer: new Cesium.ImageryLayer(new Cesium.ArcGisMapServerImageryProvider({
+            url : 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
+        }))
     });
     Cesium.Ion.defaultAccessToken = ''; 
     viewer.scene.globe.baseColor = Cesium.Color.BLACK; 
-    if (viewer.scene.sun) viewer.scene.sun.show = false;
-    if (viewer.scene.moon) viewer.scene.moon.show = false;
-    if (viewer._cesiumWidget && viewer._cesiumWidget._creditContainer) {
-        viewer._cesiumWidget._creditContainer.style.display = "none"; 
-    }
-    console.log("Cesium Viewer initialized with OSM imagery.");
+    viewer.scene.globe.depthTestAgainstTerrain = true;
+    console.log("Cesium Viewer initialized with satellite imagery.");
 } catch (error) {
     console.error("Failed to initialize Cesium Viewer:", error);
     document.getElementById('cesiumContainer').innerHTML = `<div class="p-10 text-red-500">3D Engine Error: ${error.message}</div>`;
@@ -138,7 +130,8 @@ function visualizeFlight(telemetry, flightStartTime) {
         position: positions,
         orientation: orientations, // 使用遥测数据中的真实姿态
         model: {
-            uri: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/BoxInterleaved/glTF-Binary/BoxInterleaved.glb', // 暂时使用高兼容性模型验证
+            // Updated to use a public CDN link for a realistic jet model
+            uri: 'https://raw.githubusercontent.com/derrick191220/dcs_web_tac/main/static/models/f16.glb',
             minimumPixelSize: 128,
             maximumScale: 20000
         },
@@ -189,6 +182,13 @@ function visualizeFlight(telemetry, flightStartTime) {
             hudAlt.innerText = `${Math.round(nearest.alt)} m`;
             hudSpeed.innerText = `${Math.round(nearest.ias)} kts`;
             hudG.innerText = nearest.g_force.toFixed(1);
+            
+            // Numerical Telemetry
+            document.getElementById('hud-lat').innerText = nearest.lat.toFixed(4);
+            document.getElementById('hud-lon').innerText = nearest.lon.toFixed(4);
+            document.getElementById('hud-pitch').innerText = `${Math.round(nearest.pitch)}°`;
+            document.getElementById('hud-roll').innerText = `${Math.round(nearest.roll)}°`;
+            document.getElementById('hud-yaw').innerText = `${Math.round(nearest.yaw)}°`;
         }
     });
 }
