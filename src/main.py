@@ -9,32 +9,29 @@ from . import schemas, database, parser, db_init
 app = FastAPI(
     title="DCS Web-Tac API",
     description="Professional flight data analysis backend for DCS World.",
-    version="0.2.1"
+    version="0.2.2"
 )
 
 # Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
-    # Ensure data directory exists
-    os.makedirs("data", exist_ok=True)
+    os.makedirs("data/uploads", exist_ok=True)
     db_init.init_db()
-    # Pre-load the sample data if DB is empty
     try:
         with database.get_db() as db:
             count = db.cursor().execute("SELECT count(*) FROM sorties").fetchone()[0]
             if count == 0:
-                sample_path = os.path.join(os.path.dirname(__file__), "data", "samples", "full_flight_sim.acmi")
-                # Fallback for relative path
-                if not os.path.exists(sample_path):
-                    sample_path = "data/samples/full_flight_sim.acmi"
-                
+                # Path relative to the directory where main.py is run
+                sample_path = os.path.join("data", "samples", "full_flight_sim.acmi")
                 if os.path.exists(sample_path):
+                    print(f"Loading default sample from {sample_path}")
                     acmi_parser = parser.AcmiParser()
                     acmi_parser.parse_file(sample_path)
+                else:
+                    print(f"Warning: Sample file not found at {sample_path}")
     except Exception as e:
         print(f"Startup DB Error: {e}")
 
-# Enable CORS for frontend development
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -42,13 +39,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-UPLOAD_DIR = "data/uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
 # API Endpoints
 @app.get("/api/", tags=["Health"])
 def read_root():
-    return {"status": "DCS Web-Tac System Online", "version": "0.2.1", "principles_adhered": True}
+    return {"status": "DCS Web-Tac Online", "version": "0.2.2"}
 
 @app.get("/api/sorties", response_model=List[schemas.Sortie], tags=["Data"])
 def list_sorties():
@@ -71,22 +65,26 @@ async def upload_acmi(background_tasks: BackgroundTasks, file: UploadFile = File
     if not (file.filename.endswith(".acmi") or file.filename.endswith(".zip") or file.filename.endswith(".gz")):
         raise HTTPException(status_code=400, detail="Unsupported file format")
 
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    file_path = os.path.join("data/uploads", file.filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     background_tasks.add_task(process_acmi, file_path)
-    return {"message": f"Successfully uploaded {file.filename}", "filename": file.filename}
+    return {"message": f"Successfully uploaded {file.filename}"}
 
 def process_acmi(file_path: str):
     acmi_parser = parser.AcmiParser()
     acmi_parser.parse_file(file_path)
 
-# Serve Frontend Static Files
-static_path = os.path.join(os.path.dirname(__file__), "..", "static")
-if not os.path.exists(static_path):
-    static_path = "static"
-app.mount("/", StaticFiles(directory=static_path, html=True), name="static")
+# Mount static files at the end to avoid shadowing /api/
+# In Render, we run from the root, so static/ is at ./static
+if os.path.exists("static"):
+    app.mount("/", StaticFiles(directory="static", html=True), name="static")
+else:
+    # Fallback for different directory structures
+    alt_static = os.path.join(os.path.dirname(__file__), "..", "static")
+    if os.path.exists(alt_static):
+        app.mount("/", StaticFiles(directory=alt_static, html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
