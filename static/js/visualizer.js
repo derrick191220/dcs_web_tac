@@ -20,7 +20,7 @@ try {
         showRenderLoopErrors: true,
         // Completely bypass Cesium Ion to prevent 401 errors
         terrainProvider: new Cesium.EllipsoidTerrainProvider(),
-        baseLayer: false, // Explicitly disable to avoid any imagery loading
+        baseLayer: false,
         skyBox: false,
         skyAtmosphere: false,
         baseLayerPicker: false,
@@ -30,6 +30,8 @@ try {
     Cesium.Ion.defaultAccessToken = ''; 
     viewer.scene.contentRating = undefined; 
     viewer.scene.globe.baseColor = Cesium.Color.BLACK; 
+    viewer.scene.sun.show = false;
+    viewer.scene.moon.show = false;
     viewer._cesiumWidget._creditContainer.style.display = "none"; 
     console.log("Cesium Viewer initialized successfully.");
 } catch (error) {
