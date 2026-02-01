@@ -9,18 +9,20 @@ class AcmiParser:
     def __init__(self, db_path='data/flight_data.db'):
         self.db_path = db_path
         self.sortie_id = None
+        self.primary_obj_id = None
 
     def _get_file_handle(self, acmi_path):
-        if acmi_path.endswith('.zip'):
+        if acmi_path.endswith('.zip') or acmi_path.endswith('.zip.acmi'):
+            # Read .acmi content into memory to avoid closed zip handles
             with zipfile.ZipFile(acmi_path, 'r') as z:
-                # Find the first .acmi inside the zip
                 for name in z.namelist():
                     if name.endswith('.acmi'):
-                        return io.TextIOWrapper(z.open(name), encoding='utf-8')
+                        data = z.read(name)
+                        return io.StringIO(data.decode('latin-1'))
         elif acmi_path.endswith('.gz'):
-            return io.TextIOWrapper(gzip.open(acmi_path, 'rb'), encoding='utf-8')
+            return io.TextIOWrapper(gzip.open(acmi_path, 'rb'), encoding='latin-1')
         else:
-            return open(acmi_path, 'r', encoding='utf-8')
+            return open(acmi_path, 'r', encoding='latin-1')
 
     def parse_file(self, acmi_path):
         if not os.path.exists(acmi_path):
@@ -62,25 +64,39 @@ class AcmiParser:
                         parts = line.split(',', 1)
                         obj_id = parts[0]
                         
-                        # Use first aircraft seen as primary for this POC
-                        if not self.sortie_id:
+                        # Detect primary aircraft (first Air object)
+                        if self.primary_obj_id is None and 'Type=Air' in line:
+                            self.primary_obj_id = obj_id
                             if 'Name=' in line:
                                 match = re.search(r'Name=([^,]*)', line)
                                 if match: aircraft_type = match.group(1)
-                            
+                            if 'Pilot=' in line:
+                                match = re.search(r'Pilot=([^,]*)', line)
+                                if match: pilot_name = match.group(1)
+
                             cursor.execute('INSERT INTO sorties (mission_name, pilot_name, aircraft_type) VALUES (?, ?, ?)',
                                          (mission_name, pilot_name, aircraft_type))
                             self.sortie_id = cursor.lastrowid
 
+                        # Only store telemetry for primary aircraft
+                        if self.primary_obj_id is None or obj_id != self.primary_obj_id:
+                            continue
+
                         t_match = re.search(r'T=([^,]*)', line)
                         if t_match:
                             coords = t_match.group(1).split('|')
-                            lon = float(coords[0]) if len(coords) > 0 and coords[0] else 0
-                            lat = float(coords[1]) if len(coords) > 1 and coords[1] else 0
-                            alt = float(coords[2]) if len(coords) > 2 and coords[2] else 0
-                            roll = float(coords[3]) if len(coords) > 3 and coords[3] else 0
-                            pitch = float(coords[4]) if len(coords) > 4 and coords[4] else 0
-                            yaw = float(coords[5]) if len(coords) > 5 and coords[5] else 0
+                            def to_float(v):
+                                try:
+                                    return float(v) if v else 0.0
+                                except ValueError:
+                                    return 0.0
+
+                            lon = to_float(coords[0]) if len(coords) > 0 else 0.0
+                            lat = to_float(coords[1]) if len(coords) > 1 else 0.0
+                            alt = to_float(coords[2]) if len(coords) > 2 else 0.0
+                            roll = to_float(coords[3]) if len(coords) > 3 else 0.0
+                            pitch = to_float(coords[4]) if len(coords) > 4 else 0.0
+                            yaw = to_float(coords[5]) if len(coords) > 5 else 0.0
                             
                             ias = 0
                             ias_match = re.search(r'IAS=([^,]*)', line)

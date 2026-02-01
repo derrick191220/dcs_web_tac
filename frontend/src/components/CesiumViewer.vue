@@ -160,15 +160,14 @@ function visualizeFlight(telemetry, start) {
         const position = Cesium.Cartesian3.fromDegrees(point.lon, point.lat, point.alt);
         positions.addSample(time, position);
         
-        // Convert ACMI NED angles to Cesium ENU heading/pitch/roll
-        // NED -> ENU: heading = 90° - yaw, pitch = -pitch, roll = roll
+        // ACMI angles are in degrees (yaw=heading). Convert directly to Cesium HPR
         const headingOffset = Cesium.Math.toRadians(180); // model forward axis fix
         const yawDeg = point.yaw || 0;
         const pitchDeg = point.pitch || 0;
         const rollDeg = point.roll || 0;
 
-        const heading = Cesium.Math.toRadians(90 - yawDeg) + headingOffset;
-        const pitch = Cesium.Math.toRadians(-pitchDeg);
+        const heading = Cesium.Math.toRadians(yawDeg) + headingOffset;
+        const pitch = Cesium.Math.toRadians(pitchDeg);
         const roll = Cesium.Math.toRadians(rollDeg);
 
         const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
@@ -219,8 +218,10 @@ function updateHud() {
     const nearest = activeTelemetry.reduce((prev, curr) => 
         Math.abs(curr.time_offset - offset) < Math.abs(prev.time_offset - offset) ? curr : prev
     );
-    
+
     if (nearest) {
+        // Skip bogus zero points
+        if (nearest.lat === 0 && nearest.lon === 0 && nearest.alt === 0) return;
         hud.alt = nearest.alt;
         hud.ias = nearest.ias;
         hud.g = nearest.g_force;
