@@ -103,6 +103,7 @@ function visualizeFlight(telemetry, flightStartTime) {
     if (currentEntity) viewer.entities.remove(currentEntity);
 
     const positions = new Cesium.SampledPositionProperty();
+    const orientations = new Cesium.SampledProperty(Cesium.Quaternion);
     
     telemetry.forEach(point => {
         const time = Cesium.JulianDate.addSeconds(
@@ -112,25 +113,35 @@ function visualizeFlight(telemetry, flightStartTime) {
         );
         const position = Cesium.Cartesian3.fromDegrees(point.lon, point.lat, point.alt);
         positions.addSample(time, position);
+
+        // Calculate orientation from Pitch, Roll, Yaw
+        // Note: DCS use specific Euler order, but standard heading/pitch/roll usually works for visual
+        const hpr = new Cesium.HeadingPitchRoll(
+            Cesium.Math.toRadians(point.yaw || 0),
+            Cesium.Math.toRadians(point.pitch || 0),
+            Cesium.Math.toRadians(point.roll || 0)
+        );
+        const orientation = Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
+        orientations.addSample(time, orientation);
     });
 
     currentEntity = viewer.entities.add({
         position: positions,
-        orientation: new Cesium.VelocityOrientationProperty(positions),
+        orientation: orientations, // Use the real orientations from telemetry
+        model: {
+            uri: 'https://assets.agi.com/models/F-16.glb', // Professional F-16 model
+            minimumPixelSize: 128,
+            maximumScale: 20000
+        },
         path: {
             resolution: 1,
             material: new Cesium.PolylineGlowMaterialProperty({
                 glowPower: 0.25,
                 color: Cesium.Color.GOLD
             }),
-            width: 6,
-            trailTime: 600
-        },
-        point: {
-            pixelSize: 15,
-            color: Cesium.Color.RED,
-            outlineColor: Cesium.Color.WHITE,
-            outlineWidth: 2
+            width: 8,
+            leadTime: 0,
+            trailTime: 100000 // Show much longer trail
         },
         label: {
             text: 'PILOT: DERRICK',
@@ -138,9 +149,13 @@ function visualizeFlight(telemetry, flightStartTime) {
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
             outlineWidth: 2,
             verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-            pixelOffset: new Cesium.Cartesian2(0, -25)
+            pixelOffset: new Cesium.Cartesian2(0, -50)
         }
     });
+
+    // Ensure ground clamping or relative height
+    viewer.scene.globe.depthTestAgainstTerrain = true;
+
 
     const start = flightStartTime;
     const stop = Cesium.JulianDate.addSeconds(start, telemetry[telemetry.length-1].time_offset, new Cesium.JulianDate());
