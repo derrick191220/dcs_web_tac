@@ -136,9 +136,9 @@ function visualizeFlight(telemetry, flightStartTime) {
 
     currentEntity = viewer.entities.add({
         position: positions,
-        orientation: orientations, // Use the real orientations from telemetry
+        orientation: orientations, // 使用遥测数据中的真实姿态
         model: {
-            uri: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb', // Use even simpler model to test
+            uri: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/BoxInterleaved/glTF-Binary/BoxInterleaved.glb', // 暂时使用高兼容性模型验证
             minimumPixelSize: 128,
             maximumScale: 20000
         },
@@ -148,9 +148,9 @@ function visualizeFlight(telemetry, flightStartTime) {
                 glowPower: 0.25,
                 color: Cesium.Color.GOLD
             }),
-            width: 8,
+            width: 10,
             leadTime: 0,
-            trailTime: 1000000 // Very long trail
+            trailTime: 1000000 // 航迹大幅延长，确保整个飞行过程可见
         },
         label: {
             text: 'PILOT: DERRICK',
