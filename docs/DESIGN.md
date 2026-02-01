@@ -1,24 +1,33 @@
-# Design Document - DCS Web-Tac
+# Design Document - DCS Web-Tac (Enterprise Edition)
 
 ## Core Principles
-1. **Technical Excellence**: Using FastAPI for a high-performance, asynchronous backend. Integrating Cesium.js for advanced 3D geospatial rendering.
-2. **Friendly UI**: Implementing a modern, clean dashboard using Vue 3 and Tailwind CSS.
-3. **Practical Functionality**: Focused on real-world flight debriefing needs: trajectory replay, energy management analysis, and engagement tracking.
-4. **Security & Reliability**: Secure database handling via SQLite with proper input sanitization. Automated CI/CD checks (planned).
-5. **Aviation Standards**: Data structures follow aviation norms (Lat/Lon/Alt, Roll/Pitch/Yaw). Parsing follows Tacview ACMI 2.1 specifications.
-6. **Documentation**: Maintaining clear documentation for both users and developers in the `/docs` folder.
+1. **Technical Excellence**: High-performance asynchronous backend (FastAPI) and expert-level 3D visualization (Cesium.js).
+2. **Friendly UI**: Interactive dashboards with Tailwind CSS and deep data integration.
+3. **Practical Functionality**: Real-time telemetry, ACMI replay, and flight performance metrics.
+4. **Security & Reliability**: ACID storage via SQLite and background task processing.
+5. **Aviation Standards**: Compliant with ACMI 2.1 and global flight data conventions.
+6. **Documentation**: Integrated API docs and structured design specifications.
 
-## System Architecture
-### 1. Data Collection Layer
-- **DCS Export Script**: Hooking into `onSimulationFrame` for high-fidelity data.
-- **Telemetry Server**: Async UDP listener.
+## Technical Implementation
+This project follows the `dcs-fullstack-dev` engineering framework.
 
-### 2. Data Storage Layer
-- **SQLite**: Local relational storage for ease of deployment and high portability.
+### 1. Backend Layer (Python/FastAPI)
+- **Asynchronous Processing**: All data ingestion and database I/O is non-blocking.
+- **Data Schemas**: Strict validation using Pydantic models for Sorties and Telemetry.
+- **Ingestion**: Supports `.acmi`, `.zip`, and `.gz` formats via background processing.
 
-### 3. Backend Layer (API)
-- **FastAPI**: Serving telemetry data via REST and WebSockets (for live view).
+### 2. Frontend Layer (JS/Cesium.js)
+- **3D Geospatial Viewer**: High-fidelity flight path rendering on a global ellipsoid.
+- **Interpolated Playback**: Uses `SampledPositionProperty` for smooth movement between DCS samples.
+- **Robust HUD**: Dynamic telemetry overlay synced with the 3D playback timeline.
 
-### 4. Frontend Layer (UI)
-- **Cesium.js Visualizer**: Full 3D environment for flight replay.
-- **ECharts Dashboards**: Statistical analysis of flight performance (G-load, fuel, IAS).
+### 3. Data Storage (SQLite)
+- Relational schema optimized for time-series flight data.
+- Automated migrations and initialization logic.
+
+## Roadmap
+- [x] Phase 1: Basic project setup and GitHub integration.
+- [x] Phase 2: ACMI data parsing and SQLite storage.
+- [x] Phase 3: Modern 3D web dashboard and Render deployment.
+- [ ] Phase 4: Real-time UDP telemetry streaming from DCS.
+- [ ] Phase 5: Statistical energy management charts.
