@@ -410,13 +410,18 @@ function updateHud() {
     // Simple nearest neighbor search
     // Optimization: activeTelemetry is sorted by time_offset. 
     // binary search would be better but find is ok for small datasets.
-    const nearest = activeTelemetry.reduce((prev, curr) => 
-        Math.abs(curr.time_offset - offset) < Math.abs(prev.time_offset - offset) ? curr : prev
-    );
+    // pick nearest valid point (non-zero position)
+    let nearest = null;
+    let minDiff = Infinity;
+    for (const p of activeTelemetry) {
+        const diff = Math.abs(p.time_offset - offset);
+        if (diff < minDiff && !(p.lat === 0 && p.lon === 0 && p.alt === 0)) {
+            minDiff = diff;
+            nearest = p;
+        }
+    }
 
     if (nearest) {
-        // Skip bogus zero points
-        if (nearest.lat === 0 && nearest.lon === 0 && nearest.alt === 0) return;
         hud.alt = nearest.alt;
         hud.ias = nearest.ias;
         hud.g = nearest.g_force;
