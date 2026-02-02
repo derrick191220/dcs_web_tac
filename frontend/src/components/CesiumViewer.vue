@@ -24,6 +24,10 @@
         <aside class="w-80 border-r border-gray-700 bg-gray-800 flex flex-col">
             <div class="p-4 border-b border-gray-700 space-y-3">
                 <h2 class="text-sm font-bold uppercase text-gray-400">Sortie History</h2>
+                <div class="text-[10px] text-gray-500">
+                    <div>Sortie ID: <span class="text-gray-300">{{ currentSortie?.id ?? '—' }}</span></div>
+                    <div>Obj ID: <span class="text-gray-300">{{ currentObject?.obj_id ?? '—' }}</span></div>
+                </div>
                 <div>
                     <label class="text-[10px] uppercase text-gray-500">Aircraft</label>
                     <select
