@@ -94,8 +94,14 @@
         </section>
 
         <!-- Right HUD Panel -->
-        <aside class="w-72 border-l border-gray-700 bg-gray-900 p-4">
-            <h3 class="text-xs font-bold text-blue-400 mb-2 uppercase">Telemetry Data</h3>
+        <aside class="w-80 border-l border-gray-700 bg-gray-900 p-4 overflow-y-auto">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-xs font-bold text-blue-400 uppercase">Telemetry Data</h3>
+                <label class="text-[10px] text-gray-400 flex items-center gap-1">
+                    <input type="checkbox" v-model="showCompare" />
+                    Raw Compare
+                </label>
+            </div>
             <div class="grid grid-cols-2 gap-2 text-sm">
                 <span class="text-gray-400">Alt:</span> <span>{{ Math.round(hud.alt) }} m</span>
                 <span class="text-gray-400">Speed:</span> <span>{{ Math.round(hud.ias) }} kts</span>
@@ -107,6 +113,36 @@
                 <span class="text-gray-500">Pitch:</span> <span class="text-gray-300">{{ Math.round(hud.pitch) }}°</span>
                 <span class="text-gray-500">Roll:</span> <span class="text-gray-300">{{ Math.round(hud.roll) }}°</span>
                 <span class="text-gray-500">Yaw:</span> <span class="text-gray-300">{{ Math.round(hud.yaw) }}°</span>
+            </div>
+
+            <div v-if="showCompare" class="mt-3 border-t border-gray-700 pt-2">
+                <div class="text-[10px] text-gray-400 mb-1">Raw vs Processed @ t={{ compareNearest.time_offset?.toFixed(2) ?? '—' }}s</div>
+                <div v-if="compareNearest.bad_attitude" class="text-[10px] text-red-400 mb-1">⚠️ Abnormal attitude detected (>|3600°|)</div>
+                <div class="grid grid-cols-4 gap-1 text-[10px]">
+                    <div class="text-gray-500">Field</div>
+                    <div class="text-gray-500">Raw</div>
+                    <div class="text-gray-500">Proc</div>
+                    <div class="text-gray-500">Δ</div>
+
+                    <div class="text-gray-400">Pitch</div>
+                    <div :class="['truncate', compareNearest.bad_attitude ? 'text-red-300' : 'text-gray-300']">{{ compareNearest.raw?.pitch ?? '—' }}</div>
+                    <div :class="['truncate', compareNearest.bad_attitude ? 'text-red-300' : 'text-gray-300']">{{ compareNearest.processed?.pitch ?? '—' }}</div>
+                    <div class="text-gray-300">{{ compareNearest.delta?.pitch ?? '—' }}</div>
+
+                    <div class="text-gray-400">Roll</div>
+                    <div :class="['truncate', compareNearest.bad_attitude ? 'text-red-300' : 'text-gray-300']">{{ compareNearest.raw?.roll ?? '—' }}</div>
+                    <div :class="['truncate', compareNearest.bad_attitude ? 'text-red-300' : 'text-gray-300']">{{ compareNearest.processed?.roll ?? '—' }}</div>
+                    <div class="text-gray-300">{{ compareNearest.delta?.roll ?? '—' }}</div>
+
+                    <div class="text-gray-400">Yaw</div>
+                    <div :class="['truncate', compareNearest.bad_attitude ? 'text-red-300' : 'text-gray-300']">{{ compareNearest.raw?.yaw ?? '—' }}</div>
+                    <div :class="['truncate', compareNearest.bad_attitude ? 'text-red-300' : 'text-gray-300']">{{ compareNearest.processed?.yaw ?? '—' }}</div>
+                    <div class="text-gray-300">{{ compareNearest.delta?.yaw ?? '—' }}</div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-[10px] mt-2">
+                    <span class="text-gray-500">Raw T:</span>
+                    <span class="text-gray-300 break-all">{{ compareNearest.raw?.T?.join('|') ?? '—' }}</span>
+                </div>
             </div>
         </aside>
     </main>
@@ -129,6 +165,15 @@ const hud = reactive({
     alt: 0, ias: 0, g: 1.0,
     lat: 0, lon: 0, pitch: 0, roll: 0, yaw: 0
 });
+const compareTelemetry = ref([]);
+const compareNearest = reactive({
+    time_offset: null,
+    raw: {},
+    processed: {},
+    delta: {},
+    bad_attitude: false
+});
+const showCompare = ref(true);
 
 const attitudeConfig = reactive({
     yawOffset: 180,
@@ -264,6 +309,14 @@ async function loadTelemetry(sortieId, objId) {
 
     const res = await fetch(`/api/sorties/${sortieId}/telemetry?${params.toString()}`);
     activeTelemetry = await res.json();
+
+    // Fetch raw vs processed compare
+    try {
+        const compareRes = await fetch(`/api/sorties/${sortieId}/telemetry_compare?${params.toString()}`);
+        compareTelemetry.value = await compareRes.json();
+    } catch (e) {
+        compareTelemetry.value = [];
+    }
 
     let rawStart = currentSortie.value.start_time;
     if (!rawStart.includes('Z')) rawStart += 'Z';
@@ -466,6 +519,25 @@ function updateHud() {
                 const speed_mps = Cesium.Cartesian3.distance(p1, p2) / dt;
                 hud.ias = speed_mps * 1.94384; // m/s to knots
             }
+        }
+    }
+
+    if (compareTelemetry.value && compareTelemetry.value.length) {
+        let nearestCmp = null;
+        let minDiffCmp = Infinity;
+        for (const c of compareTelemetry.value) {
+            const diff = Math.abs(c.time_offset - offset);
+            if (diff < minDiffCmp) {
+                minDiffCmp = diff;
+                nearestCmp = c;
+            }
+        }
+        if (nearestCmp) {
+            compareNearest.time_offset = nearestCmp.time_offset;
+            compareNearest.raw = nearestCmp.raw || {};
+            compareNearest.processed = nearestCmp.processed || {};
+            compareNearest.delta = nearestCmp.delta || {};
+            compareNearest.bad_attitude = !!nearestCmp.bad_attitude;
         }
     }
 }

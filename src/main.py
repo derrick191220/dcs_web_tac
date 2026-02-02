@@ -150,6 +150,121 @@ def get_telemetry(sortie_id: int, obj_id: str | None = None, start: float | None
         )
         raise HTTPException(status_code=500, detail=f"Internal Server Error: telemetry failed")
 
+@app.get("/api/sorties/{sortie_id}/telemetry_compare", tags=["Data"])
+def get_telemetry_compare(sortie_id: int, obj_id: str | None = None, start: float | None = None, end: float | None = None,
+                          downsample: float | None = None, limit: int | None = None):
+    import json
+    import math
+
+    def to_float(v):
+        try:
+            return float(v)
+        except Exception:
+            return None
+
+    def safe_num(v):
+        return v if isinstance(v, (int, float)) and math.isfinite(v) else None
+
+    def parse_raw_T(raw_str):
+        if not raw_str:
+            return {}
+        try:
+            payload = json.loads(raw_str)
+            coords = payload.get("T", [])
+            return {
+                "lon": to_float(coords[0]) if len(coords) > 0 else None,
+                "lat": to_float(coords[1]) if len(coords) > 1 else None,
+                "alt": to_float(coords[2]) if len(coords) > 2 else None,
+                "roll": to_float(coords[3]) if len(coords) > 3 else None,
+                "pitch": to_float(coords[4]) if len(coords) > 4 else None,
+                "yaw": to_float(coords[5]) if len(coords) > 5 else None,
+                "u": to_float(coords[6]) if len(coords) > 6 else None,
+                "v": to_float(coords[7]) if len(coords) > 7 else None,
+                "heading": to_float(coords[8]) if len(coords) > 8 else None,
+                "T": coords
+            }
+        except Exception:
+            return {}
+
+    with database.get_db() as db:
+        cursor = db.cursor()
+        params = [sortie_id]
+        query = "SELECT * FROM telemetry WHERE sortie_id = ?"
+        if obj_id:
+            query += " AND obj_id = ?"
+            params.append(obj_id)
+        if start is not None:
+            query += " AND time_offset >= ?"
+            params.append(start)
+        if end is not None:
+            query += " AND time_offset <= ?"
+            params.append(end)
+        query += " ORDER BY time_offset"
+        if limit:
+            query += " LIMIT ?"
+            params.append(limit)
+        rows = cursor.execute(query, tuple(params)).fetchall()
+        if not rows:
+            raise HTTPException(status_code=404, detail="Sortie data not found")
+
+        # reuse downsample logic to keep parity with telemetry endpoint
+        result = [dict(row) for row in rows]
+        if downsample:
+            filtered = []
+            last_bucket = None
+            last = None
+            for r in result:
+                is_event = False
+                if last:
+                    if abs((safe_num(r.get("g_force")) or 0) - (safe_num(last.get("g_force")) or 0)) >= 1.5 or (safe_num(r.get("g_force")) or 0) >= 4:
+                        is_event = True
+                    if abs((safe_num(r.get("alt")) or 0) - (safe_num(last.get("alt")) or 0)) >= 200:
+                        is_event = True
+                    if abs((safe_num(r.get("ias")) or 0) - (safe_num(last.get("ias")) or 0)) >= 80:
+                        is_event = True
+                    if abs((safe_num(r.get("yaw")) or 0) - (safe_num(last.get("yaw")) or 0)) >= 45 or abs((safe_num(r.get("pitch")) or 0) - (safe_num(last.get("pitch")) or 0)) >= 30 or abs((safe_num(r.get("roll")) or 0) - (safe_num(last.get("roll")) or 0)) >= 60:
+                        is_event = True
+                bucket = int((safe_num(r.get("time_offset")) or 0) / downsample) if downsample > 0 else r.get("time_offset")
+                if bucket != last_bucket or is_event:
+                    filtered.append(r)
+                    last_bucket = bucket
+                last = r
+            result = filtered
+
+        compare = []
+        for r in result:
+            raw_T = parse_raw_T(r.get("raw"))
+            processed = {
+                "lat": safe_num(r.get("lat")),
+                "lon": safe_num(r.get("lon")),
+                "alt": safe_num(r.get("alt")),
+                "roll": safe_num(r.get("roll")),
+                "pitch": safe_num(r.get("pitch")),
+                "yaw": safe_num(r.get("yaw")),
+                "heading": safe_num(r.get("heading")),
+                "ias": safe_num(r.get("ias")),
+                "g_force": safe_num(r.get("g_force"))
+            }
+            delta = {}
+            for k in ["lat", "lon", "alt", "roll", "pitch", "yaw", "heading"]:
+                rv = raw_T.get(k)
+                pv = processed.get(k)
+                delta[k] = (pv - rv) if (rv is not None and pv is not None) else None
+            bad_attitude = False
+            for k in ["roll", "pitch", "yaw"]:
+                v = processed.get(k)
+                if v is not None and abs(v) > 3600:
+                    bad_attitude = True
+            compare.append({
+                "time_offset": r.get("time_offset"),
+                "raw": raw_T,
+                "processed": processed,
+                "delta": delta,
+                "bad_attitude": bad_attitude
+            })
+
+        return compare
+
 @app.post("/api/upload", tags=["Ingestion"])
 async def upload_acmi(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     if not (file.filename.endswith(".acmi") or file.filename.endswith(".zip") or file.filename.endswith(".gz") or file.filename.endswith(".zip.acmi")):
