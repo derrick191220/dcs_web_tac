@@ -425,6 +425,19 @@ function updateHud() {
         hud.pitch = nearest.pitch;
         hud.roll = nearest.roll;
         hud.yaw = nearest.yaw;
+
+        // Fallback IAS estimation when missing (use ground speed)
+        if (!hud.ias || hud.ias === 0) {
+            const idx = activeTelemetry.findIndex(p => p === nearest);
+            if (idx > 0) {
+                const prev = activeTelemetry[idx - 1];
+                const p1 = Cesium.Cartesian3.fromDegrees(prev.lon, prev.lat, prev.alt);
+                const p2 = Cesium.Cartesian3.fromDegrees(nearest.lon, nearest.lat, nearest.alt);
+                const dt = Math.max(0.001, nearest.time_offset - prev.time_offset);
+                const speed_mps = Cesium.Cartesian3.distance(p1, p2) / dt;
+                hud.ias = speed_mps * 1.94384; // m/s to knots
+            }
+        }
     }
 }
 </script>

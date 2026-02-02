@@ -39,6 +39,8 @@ class AcmiParser:
         pilot_name = "Unknown Pilot"
         aircraft_type = "Unknown"
         reference_time = None
+        reference_lon = 0.0
+        reference_lat = 0.0
         global_props_buffer = []
 
         def update_job(status=None, progress=None, error=None, sortie_id=None):
@@ -87,6 +89,12 @@ class AcmiParser:
                         if 'ReferenceTime=' in line:
                             match = re.search(r'ReferenceTime=([^,]*)', line)
                             if match: reference_time = match.group(1)
+                        if 'ReferenceLongitude=' in line:
+                            match = re.search(r'ReferenceLongitude=([^,]*)', line)
+                            if match: reference_lon = float(match.group(1))
+                        if 'ReferenceLatitude=' in line:
+                            match = re.search(r'ReferenceLatitude=([^,]*)', line)
+                            if match: reference_lat = float(match.group(1))
                         if 'MissionTitle=' in line:
                             match = re.search(r'MissionTitle=([^,]*)', line)
                             if match: mission_name = match.group(1)
@@ -231,6 +239,9 @@ class AcmiParser:
 
                             lon = to_float(coords[0]) if len(coords) > 0 else 0.0
                             lat = to_float(coords[1]) if len(coords) > 1 else 0.0
+                            if reference_lon or reference_lat:
+                                lon += reference_lon
+                                lat += reference_lat
                             alt = to_float(coords[2]) if len(coords) > 2 else 0.0
                             roll = to_float(coords[3]) if len(coords) > 3 else 0.0
                             pitch = to_float(coords[4]) if len(coords) > 4 else 0.0
