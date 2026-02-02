@@ -10,7 +10,10 @@
             <input ref="fileInput" type="file" class="hidden" @change="onFileSelected" accept=".acmi,.zip,.gz,.zip.acmi" />
             <button @click="triggerUpload" class="bg-blue-600 hover:bg-blue-500 px-4 py-1.5 rounded text-sm transition font-medium">Upload ACMI</button>
             <div class="h-8 w-px bg-gray-700"></div>
-            <span class="text-sm text-gray-300 self-center">
+            <span class="text-xs text-gray-300 self-center" v-if="uploadJob.status">
+                Upload: {{ uploadJob.status }} {{ uploadJob.progress ? `(${uploadJob.progress}%)` : '' }}
+            </span>
+            <span class="text-sm text-gray-300 self-center" v-else>
                 Pilot: {{ currentObject?.pilot || 'Unknown' }} | {{ currentObject?.name || 'Aircraft' }}
             </span>
         </div>
@@ -86,6 +89,7 @@ const currentSortie = ref(null);
 const objects = ref([]);
 const currentObject = ref(null);
 const loading = ref(true);
+const uploadJob = reactive({ status: null, progress: 0, error: null });
 const hud = reactive({
     alt: 0, ias: 0, g: 1.0,
     lat: 0, lon: 0, pitch: 0, roll: 0, yaw: 0
@@ -200,14 +204,41 @@ async function onFileSelected(e) {
     formData.append('file', file);
 
     try {
-        await fetch('/api/upload', { method: 'POST', body: formData });
-        // refresh sorties list after upload
-        await loadSorties();
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.job_id) {
+            pollJob(data.job_id);
+        }
     } catch (err) {
         console.error('Upload failed', err);
+        uploadJob.status = 'failed';
+        uploadJob.error = String(err);
     } finally {
         if (fileInput.value) fileInput.value.value = '';
     }
+}
+
+async function pollJob(jobId) {
+    uploadJob.status = 'queued';
+    uploadJob.progress = 0;
+    uploadJob.error = null;
+
+    const timer = setInterval(async () => {
+        try {
+            const res = await fetch(`/api/jobs/${jobId}`);
+            const job = await res.json();
+            uploadJob.status = job.status;
+            uploadJob.progress = Math.round(job.progress_pct || 0);
+            uploadJob.error = job.error;
+
+            if (job.status === 'done' || job.status === 'failed') {
+                clearInterval(timer);
+                await loadSorties();
+            }
+        } catch (e) {
+            clearInterval(timer);
+        }
+    }, 1500);
 }
 
 function visualizeFlight(telemetry, start) {

@@ -74,38 +74,76 @@ def list_objects(sortie_id: int):
         return [dict(row) for row in rows]
 
 @app.get("/api/sorties/{sortie_id}/telemetry", response_model=List[schemas.TelemetryBase], tags=["Data"])
-def get_telemetry(sortie_id: int, obj_id: str | None = None):
+def get_telemetry(sortie_id: int, obj_id: str | None = None, start: float | None = None, end: float | None = None,
+                  downsample: float | None = None, limit: int | None = None, include_raw: bool = False):
     with database.get_db() as db:
         cursor = db.cursor()
+        params = [sortie_id]
+        query = "SELECT * FROM telemetry WHERE sortie_id = ?"
         if obj_id:
-            rows = cursor.execute(
-                "SELECT * FROM telemetry WHERE sortie_id = ? AND obj_id = ? ORDER BY time_offset",
-                (sortie_id, obj_id)
-            ).fetchall()
-        else:
-            rows = cursor.execute(
-                "SELECT * FROM telemetry WHERE sortie_id = ? ORDER BY time_offset",
-                (sortie_id,)
-            ).fetchall()
+            query += " AND obj_id = ?"
+            params.append(obj_id)
+        if start is not None:
+            query += " AND time_offset >= ?"
+            params.append(start)
+        if end is not None:
+            query += " AND time_offset <= ?"
+            params.append(end)
+        query += " ORDER BY time_offset"
+        if limit:
+            query += " LIMIT ?"
+            params.append(limit)
+        rows = cursor.execute(query, tuple(params)).fetchall()
         if not rows:
             raise HTTPException(status_code=404, detail="Sortie data not found")
-        return [dict(row) for row in rows]
+        result = [dict(row) for row in rows]
+        if downsample:
+            filtered = []
+            last_bucket = None
+            for r in result:
+                bucket = int(r["time_offset"] / downsample) if downsample > 0 else r["time_offset"]
+                if bucket != last_bucket:
+                    filtered.append(r)
+                    last_bucket = bucket
+            result = filtered
+        if not include_raw:
+            for r in result:
+                r.pop("raw", None)
+        return result
 
 @app.post("/api/upload", tags=["Ingestion"])
 async def upload_acmi(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
-    if not (file.filename.endswith(".acmi") or file.filename.endswith(".zip") or file.filename.endswith(".gz")):
+    if not (file.filename.endswith(".acmi") or file.filename.endswith(".zip") or file.filename.endswith(".gz") or file.filename.endswith(".zip.acmi")):
         raise HTTPException(status_code=400, detail="Unsupported file format")
 
+    os.makedirs("data/uploads", exist_ok=True)
     file_path = os.path.join("data/uploads", file.filename)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    background_tasks.add_task(process_acmi, file_path)
-    return {"message": f"Successfully uploaded {file.filename}"}
+    import uuid
+    job_id = str(uuid.uuid4())
+    with database.get_db() as db:
+        cursor = db.cursor()
+        cursor.execute("INSERT INTO parse_jobs (id, file_name, status, progress_pct) VALUES (?, ?, ?, ?)",
+                       (job_id, file.filename, "queued", 0))
+        db.commit()
 
-def process_acmi(file_path: str):
+    background_tasks.add_task(process_acmi, file_path, job_id)
+    return {"message": f"Successfully uploaded {file.filename}", "job_id": job_id}
+
+def process_acmi(file_path: str, job_id: str | None = None):
     acmi_parser = parser.AcmiParser()
-    acmi_parser.parse_file(file_path)
+    acmi_parser.parse_file(file_path, job_id=job_id)
+
+@app.get("/api/jobs/{job_id}", response_model=schemas.ParseJob, tags=["Ingestion"])
+def get_job(job_id: str):
+    with database.get_db() as db:
+        cursor = db.cursor()
+        row = cursor.execute("SELECT * FROM parse_jobs WHERE id = ?", (job_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Job not found")
+        return dict(row)
 
 # Mount static files using absolute paths to be environment-agnostic
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
