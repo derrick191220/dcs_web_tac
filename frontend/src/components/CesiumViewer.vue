@@ -59,7 +59,11 @@
                     <label class="text-[10px] text-gray-500">End (s)</label>
                     <input v-model.number="telemetryQuery.end" type="number" class="col-span-2 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs" />
                     <label class="text-[10px] text-gray-500">Step (s)</label>
-                    <input v-model.number="telemetryQuery.downsample" type="number" class="col-span-2 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs" />
+                    <input v-model.number="telemetryQuery.downsample" type="number" :disabled="telemetryQuery.auto" class="col-span-2 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs" />
+                    <label class="text-[10px] text-gray-500">Auto</label>
+                    <input type="checkbox" v-model="telemetryQuery.auto" class="col-span-2" />
+                    <label class="text-[10px] text-gray-500">Target Pts</label>
+                    <input v-model.number="telemetryQuery.targetPoints" type="number" class="col-span-2 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs" />
                     <div></div>
                     <button @click="applyTelemetryQuery" class="col-span-2 bg-gray-700 hover:bg-gray-600 rounded px-2 py-1 text-xs">Apply</button>
                 </div>
@@ -120,7 +124,7 @@ const objects = ref([]);
 const currentObject = ref(null);
 const loading = ref(true);
 const uploadJob = reactive({ status: null, progress: 0, error: null });
-const telemetryQuery = reactive({ start: null, end: null, downsample: 1 });
+const telemetryQuery = reactive({ start: null, end: null, downsample: 1, auto: true, targetPoints: 8000 });
 const hud = reactive({
     alt: 0, ias: 0, g: 1.0,
     lat: 0, lon: 0, pitch: 0, roll: 0, yaw: 0
@@ -247,7 +251,17 @@ async function loadTelemetry(sortieId, objId) {
     params.set('obj_id', objId);
     if (telemetryQuery.start !== null && telemetryQuery.start !== undefined) params.set('start', telemetryQuery.start);
     if (telemetryQuery.end !== null && telemetryQuery.end !== undefined) params.set('end', telemetryQuery.end);
+
+    // Auto downsample: estimate step to keep target points
+    if (telemetryQuery.auto) {
+        const start = telemetryQuery.start ?? 0;
+        const end = telemetryQuery.end ?? 0;
+        const duration = Math.max(1, end - start);
+        const step = Math.max(1, duration / telemetryQuery.targetPoints);
+        telemetryQuery.downsample = Math.round(step);
+    }
     if (telemetryQuery.downsample) params.set('downsample', telemetryQuery.downsample);
+
     const res = await fetch(`/api/sorties/${sortieId}/telemetry?${params.toString()}`);
     activeTelemetry = await res.json();
 
