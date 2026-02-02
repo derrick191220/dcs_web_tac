@@ -12,6 +12,7 @@ class AcmiParser:
         self.sortie_id = None
         self.primary_obj_id = None
         self.objects = {}
+        self.last_state = {}
 
     def _get_file_handle(self, acmi_path):
         if acmi_path.endswith('.zip') or acmi_path.endswith('.zip.acmi'):
@@ -231,24 +232,39 @@ class AcmiParser:
                         t_match = re.search(r'T=([^,]*)', line)
                         if t_match:
                             coords = t_match.group(1).split('|')
-                            def to_float(v):
+                            def to_float_nullable(v):
                                 try:
-                                    return float(v) if v else 0.0
+                                    return float(v) if v != '' else None
                                 except ValueError:
-                                    return 0.0
+                                    return None
 
-                            lon = to_float(coords[0]) if len(coords) > 0 else 0.0
-                            lat = to_float(coords[1]) if len(coords) > 1 else 0.0
+                            lon = to_float_nullable(coords[0]) if len(coords) > 0 else None
+                            lat = to_float_nullable(coords[1]) if len(coords) > 1 else None
+                            alt = to_float_nullable(coords[2]) if len(coords) > 2 else None
+                            roll = to_float_nullable(coords[3]) if len(coords) > 3 else None
+                            pitch = to_float_nullable(coords[4]) if len(coords) > 4 else None
+                            yaw = to_float_nullable(coords[5]) if len(coords) > 5 else None
+                            u = to_float_nullable(coords[6]) if len(coords) > 6 else None
+                            v = to_float_nullable(coords[7]) if len(coords) > 7 else None
+                            heading = to_float_nullable(coords[8]) if len(coords) > 8 else None
+
+                            state = self.last_state.get(obj_id, {})
+                            lon = lon if lon is not None else state.get('lon')
+                            lat = lat if lat is not None else state.get('lat')
+                            alt = alt if alt is not None else state.get('alt')
+                            roll = roll if roll is not None else state.get('roll')
+                            pitch = pitch if pitch is not None else state.get('pitch')
+                            yaw = yaw if yaw is not None else state.get('yaw')
+                            u = u if u is not None else state.get('u')
+                            v = v if v is not None else state.get('v')
+                            heading = heading if heading is not None else state.get('heading')
+
+                            if lon is None or lat is None or alt is None:
+                                continue
+
                             if reference_lon or reference_lat:
                                 lon += reference_lon
                                 lat += reference_lat
-                            alt = to_float(coords[2]) if len(coords) > 2 else 0.0
-                            roll = to_float(coords[3]) if len(coords) > 3 else 0.0
-                            pitch = to_float(coords[4]) if len(coords) > 4 else 0.0
-                            yaw = to_float(coords[5]) if len(coords) > 5 else 0.0
-                            u = to_float(coords[6]) if len(coords) > 6 else None
-                            v = to_float(coords[7]) if len(coords) > 7 else None
-                            heading = to_float(coords[8]) if len(coords) > 8 else None
                             
                             ias = 0
                             ias_match = re.search(r'IAS=([^,]*)', line)
@@ -261,6 +277,13 @@ class AcmiParser:
                             raw_payload = {
                                 "T": coords,
                                 **fields
+                            }
+
+                            # update last known state for omitted fields
+                            self.last_state[obj_id] = {
+                                'lon': lon, 'lat': lat, 'alt': alt,
+                                'roll': roll, 'pitch': pitch, 'yaw': yaw,
+                                'u': u, 'v': v, 'heading': heading
                             }
 
                             cursor.execute('''
