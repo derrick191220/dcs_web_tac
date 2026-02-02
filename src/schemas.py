@@ -5,18 +5,18 @@ from typing import Optional, List
 class TelemetryBase(BaseModel):
     obj_id: Optional[str] = None
     time_offset: float
-    lat: float
-    lon: float
-    alt: float
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    alt: Optional[float] = None
     roll: Optional[float] = 0.0
     pitch: Optional[float] = 0.0
     yaw: Optional[float] = 0.0
     u: Optional[float] = None
     v: Optional[float] = None
     heading: Optional[float] = None
-    ias: float
+    ias: Optional[float] = None
     mach: Optional[float] = 0.0
-    g_force: float
+    g_force: Optional[float] = None
     fuel_remaining: Optional[float] = 0.0
     raw: Optional[str] = None
 

@@ -83,6 +83,16 @@ def list_events(sortie_id: int):
 @app.get("/api/sorties/{sortie_id}/telemetry", response_model=List[schemas.TelemetryBase], tags=["Data"])
 def get_telemetry(sortie_id: int, obj_id: str | None = None, start: float | None = None, end: float | None = None,
                   downsample: float | None = None, limit: int | None = None, include_raw: bool = False):
+    import math
+    def num(v, default=0.0):
+        return v if isinstance(v, (int, float)) and math.isfinite(v) else default
+
+    def sanitize_row(r: dict):
+        for k, v in list(r.items()):
+            if isinstance(v, float) and not math.isfinite(v):
+                r[k] = None
+        return r
+
     with database.get_db() as db:
         cursor = db.cursor()
         params = [sortie_id]
@@ -103,7 +113,7 @@ def get_telemetry(sortie_id: int, obj_id: str | None = None, start: float | None
         rows = cursor.execute(query, tuple(params)).fetchall()
         if not rows:
             raise HTTPException(status_code=404, detail="Sortie data not found")
-        result = [dict(row) for row in rows]
+        result = [sanitize_row(dict(row)) for row in rows]
         if downsample:
             filtered = []
             last_bucket = None
@@ -112,15 +122,15 @@ def get_telemetry(sortie_id: int, obj_id: str | None = None, start: float | None
                 # preserve key events (heuristic)
                 is_event = False
                 if last:
-                    if abs(r.get("g_force", 0) - last.get("g_force", 0)) >= 1.5 or r.get("g_force", 0) >= 4:
+                    if abs(num(r.get("g_force")) - num(last.get("g_force"))) >= 1.5 or num(r.get("g_force")) >= 4:
                         is_event = True
-                    if abs(r.get("alt", 0) - last.get("alt", 0)) >= 200:
+                    if abs(num(r.get("alt")) - num(last.get("alt"))) >= 200:
                         is_event = True
-                    if abs(r.get("ias", 0) - last.get("ias", 0)) >= 80:
+                    if abs(num(r.get("ias")) - num(last.get("ias"))) >= 80:
                         is_event = True
-                    if abs(r.get("yaw", 0) - last.get("yaw", 0)) >= 45 or abs(r.get("pitch", 0) - last.get("pitch", 0)) >= 30 or abs(r.get("roll", 0) - last.get("roll", 0)) >= 60:
+                    if abs(num(r.get("yaw")) - num(last.get("yaw"))) >= 45 or abs(num(r.get("pitch")) - num(last.get("pitch"))) >= 30 or abs(num(r.get("roll")) - num(last.get("roll"))) >= 60:
                         is_event = True
-                bucket = int(r["time_offset"] / downsample) if downsample > 0 else r["time_offset"]
+                bucket = int(num(r.get("time_offset")) / downsample) if downsample > 0 else r.get("time_offset")
                 if bucket != last_bucket or is_event:
                     filtered.append(r)
                     last_bucket = bucket
