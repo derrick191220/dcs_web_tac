@@ -91,24 +91,24 @@
         <!-- Cesium View -->
         <section class="flex-1 relative">
             <div id="cesiumContainer" class="w-full h-full"></div>
-            
-            <!-- HUD -->
-            <div class="absolute top-4 right-4 bg-black bg-opacity-60 p-4 rounded-lg border border-white border-opacity-10 w-64 pointer-events-none select-none z-10">
-                <h3 class="text-xs font-bold text-blue-400 mb-2 uppercase">Telemetry Data</h3>
-                <div class="grid grid-cols-2 gap-2 text-sm">
-                    <span class="text-gray-400">Alt:</span> <span>{{ Math.round(hud.alt) }} m</span>
-                    <span class="text-gray-400">Speed:</span> <span>{{ Math.round(hud.ias) }} kts</span>
-                    <span class="text-gray-400">G-Force:</span> <span>{{ hud.g.toFixed(1) }}</span>
-                </div>
-                <div class="grid grid-cols-2 gap-2 text-[10px] border-t border-gray-700 pt-2 mt-2">
-                    <span class="text-gray-500">Lat:</span> <span class="text-gray-300">{{ hud.lat.toFixed(4) }}</span>
-                    <span class="text-gray-500">Lon:</span> <span class="text-gray-300">{{ hud.lon.toFixed(4) }}</span>
-                    <span class="text-gray-500">Pitch:</span> <span class="text-gray-300">{{ Math.round(hud.pitch) }}°</span>
-                    <span class="text-gray-500">Roll:</span> <span class="text-gray-300">{{ Math.round(hud.roll) }}°</span>
-                    <span class="text-gray-500">Yaw:</span> <span class="text-gray-300">{{ Math.round(hud.yaw) }}°</span>
-                </div>
-            </div>
         </section>
+
+        <!-- Right HUD Panel -->
+        <aside class="w-72 border-l border-gray-700 bg-gray-900 p-4">
+            <h3 class="text-xs font-bold text-blue-400 mb-2 uppercase">Telemetry Data</h3>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+                <span class="text-gray-400">Alt:</span> <span>{{ Math.round(hud.alt) }} m</span>
+                <span class="text-gray-400">Speed:</span> <span>{{ Math.round(hud.ias) }} kts</span>
+                <span class="text-gray-400">G-Force:</span> <span>{{ hud.g.toFixed(1) }}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-[10px] border-t border-gray-700 pt-2 mt-2">
+                <span class="text-gray-500">Lat:</span> <span class="text-gray-300">{{ hud.lat.toFixed(4) }}</span>
+                <span class="text-gray-500">Lon:</span> <span class="text-gray-300">{{ hud.lon.toFixed(4) }}</span>
+                <span class="text-gray-500">Pitch:</span> <span class="text-gray-300">{{ Math.round(hud.pitch) }}°</span>
+                <span class="text-gray-500">Roll:</span> <span class="text-gray-300">{{ Math.round(hud.roll) }}°</span>
+                <span class="text-gray-500">Yaw:</span> <span class="text-gray-300">{{ Math.round(hud.yaw) }}°</span>
+            </div>
+        </aside>
     </main>
   </div>
 </template>
