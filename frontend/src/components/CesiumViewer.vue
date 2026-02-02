@@ -335,16 +335,40 @@ function visualizeFlight(telemetry, start) {
     attitudeChecks.last = null;
     attitudeChecks.alerts = [];
     
+    let lastYaw = null;
+    let lastPitch = null;
+    let lastRoll = null;
+
     telemetry.forEach(point => {
         const time = Cesium.JulianDate.addSeconds(start, point.time_offset, new Cesium.JulianDate());
         const position = Cesium.Cartesian3.fromDegrees(point.lon, point.lat, point.alt);
         positions.addSample(time, position);
         
-        // ACMI angles are in degrees (yaw=heading). Convert directly to Cesium HPR
+        // ACMI angles are in degrees (yaw=heading). Unwrap to avoid 360° jumps.
         const headingOffset = Cesium.Math.toRadians(attitudeConfig.yawOffset);
-        const yawDeg = point.yaw || 0;
-        const pitchDeg = (point.pitch || 0) * attitudeConfig.pitchSign;
-        const rollDeg = (point.roll || 0) * attitudeConfig.rollSign;
+        let yawDeg = point.yaw || 0;
+        let pitchDeg = (point.pitch || 0) * attitudeConfig.pitchSign;
+        let rollDeg = (point.roll || 0) * attitudeConfig.rollSign;
+
+        if (lastYaw !== null) {
+            let dy = yawDeg - lastYaw;
+            if (dy > 180) yawDeg -= 360;
+            if (dy < -180) yawDeg += 360;
+        }
+        if (lastPitch !== null) {
+            let dp = pitchDeg - lastPitch;
+            if (dp > 180) pitchDeg -= 360;
+            if (dp < -180) pitchDeg += 360;
+        }
+        if (lastRoll !== null) {
+            let dr = rollDeg - lastRoll;
+            if (dr > 180) rollDeg -= 360;
+            if (dr < -180) rollDeg += 360;
+        }
+
+        lastYaw = yawDeg;
+        lastPitch = pitchDeg;
+        lastRoll = rollDeg;
 
         const heading = Cesium.Math.toRadians(yawDeg) + headingOffset;
         const pitch = Cesium.Math.toRadians(pitchDeg);
