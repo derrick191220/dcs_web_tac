@@ -11,6 +11,9 @@ class TelemetryBase(BaseModel):
     roll: Optional[float] = 0.0
     pitch: Optional[float] = 0.0
     yaw: Optional[float] = 0.0
+    u: Optional[float] = None
+    v: Optional[float] = None
+    heading: Optional[float] = None
     ias: float
     mach: Optional[float] = 0.0
     g_force: float
@@ -24,6 +27,7 @@ class SortieBase(BaseModel):
     start_time: datetime
     map_name: Optional[str] = None
     parse_status: Optional[str] = None
+    reference_time: Optional[str] = None
 
 class Sortie(SortieBase):
     id: int
@@ -39,6 +43,19 @@ class ObjectBase(BaseModel):
 class Object(ObjectBase):
     id: int
     sortie_id: int
+    raw: Optional[str] = None
+    callsign: Optional[str] = None
+    color: Optional[str] = None
+    shape: Optional[str] = None
+    model_config = {"from_attributes": True}
+
+class Event(BaseModel):
+    id: int
+    sortie_id: int
+    time_offset: float
+    event_type: str
+    object_ids: Optional[str] = None
+    text: Optional[str] = None
     raw: Optional[str] = None
     model_config = {"from_attributes": True}
 

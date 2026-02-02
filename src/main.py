@@ -73,6 +73,13 @@ def list_objects(sortie_id: int):
         rows = cursor.execute("SELECT * FROM objects WHERE sortie_id = ? ORDER BY name", (sortie_id,)).fetchall()
         return [dict(row) for row in rows]
 
+@app.get("/api/sorties/{sortie_id}/events", response_model=List[schemas.Event], tags=["Data"])
+def list_events(sortie_id: int):
+    with database.get_db() as db:
+        cursor = db.cursor()
+        rows = cursor.execute("SELECT * FROM events WHERE sortie_id = ? ORDER BY time_offset", (sortie_id,)).fetchall()
+        return [dict(row) for row in rows]
+
 @app.get("/api/sorties/{sortie_id}/telemetry", response_model=List[schemas.TelemetryBase], tags=["Data"])
 def get_telemetry(sortie_id: int, obj_id: str | None = None, start: float | None = None, end: float | None = None,
                   downsample: float | None = None, limit: int | None = None, include_raw: bool = False):

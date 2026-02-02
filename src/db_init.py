@@ -29,6 +29,9 @@ def init_db(db_path='data/flight_data.db'):
             type TEXT,
             coalition TEXT,
             pilot TEXT,
+            callsign TEXT,
+            color TEXT,
+            shape TEXT,
             raw TEXT,
             FOREIGN KEY (sortie_id) REFERENCES sorties (id)
         )
@@ -43,11 +46,35 @@ def init_db(db_path='data/flight_data.db'):
             time_offset REAL,
             lat REAL, lon REAL, alt REAL,
             roll REAL, pitch REAL, yaw REAL,
+            u REAL, v REAL, heading REAL,
             ias REAL, mach REAL,
             g_force REAL,
             fuel_remaining REAL,
             raw TEXT,
             FOREIGN KEY (sortie_id) REFERENCES sorties (id)
+        )
+    ''')
+
+    # Global properties
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS global_props (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sortie_id INTEGER,
+            key TEXT,
+            value TEXT
+        )
+    ''')
+
+    # Events
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sortie_id INTEGER,
+            time_offset REAL,
+            event_type TEXT,
+            object_ids TEXT,
+            text TEXT,
+            raw TEXT
         )
     ''')
 
@@ -72,16 +99,25 @@ def init_db(db_path='data/flight_data.db'):
         cursor.execute("ALTER TABLE telemetry ADD COLUMN obj_id TEXT")
     if "raw" not in cols:
         cursor.execute("ALTER TABLE telemetry ADD COLUMN raw TEXT")
+    if "u" not in cols:
+        cursor.execute("ALTER TABLE telemetry ADD COLUMN u REAL")
+    if "v" not in cols:
+        cursor.execute("ALTER TABLE telemetry ADD COLUMN v REAL")
+    if "heading" not in cols:
+        cursor.execute("ALTER TABLE telemetry ADD COLUMN heading REAL")
 
     cursor.execute("PRAGMA table_info(objects)")
     ocols = {row[1] for row in cursor.fetchall()}
-    if "raw" not in ocols:
-        cursor.execute("ALTER TABLE objects ADD COLUMN raw TEXT")
+    for col, typ in [("raw","TEXT"),("callsign","TEXT"),("color","TEXT"),("shape","TEXT")]:
+        if col not in ocols:
+            cursor.execute(f"ALTER TABLE objects ADD COLUMN {col} {typ}")
 
     cursor.execute("PRAGMA table_info(sorties)")
     scols = {row[1] for row in cursor.fetchall()}
     if "parse_status" not in scols:
         cursor.execute("ALTER TABLE sorties ADD COLUMN parse_status TEXT DEFAULT 'queued'")
+    if "reference_time" not in scols:
+        cursor.execute("ALTER TABLE sorties ADD COLUMN reference_time TEXT")
 
     # Indexes
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_telemetry_sortie_obj_time ON telemetry(sortie_id, obj_id, time_offset)")
