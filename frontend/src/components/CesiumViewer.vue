@@ -53,6 +53,16 @@
                         <option :value="-1">-1</option>
                     </select>
                 </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <label class="text-[10px] text-gray-500">Start (s)</label>
+                    <input v-model.number="telemetryQuery.start" type="number" class="col-span-2 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs" />
+                    <label class="text-[10px] text-gray-500">End (s)</label>
+                    <input v-model.number="telemetryQuery.end" type="number" class="col-span-2 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs" />
+                    <label class="text-[10px] text-gray-500">Step (s)</label>
+                    <input v-model.number="telemetryQuery.downsample" type="number" class="col-span-2 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs" />
+                    <div></div>
+                    <button @click="applyTelemetryQuery" class="col-span-2 bg-gray-700 hover:bg-gray-600 rounded px-2 py-1 text-xs">Apply</button>
+                </div>
                 <div class="text-[10px] text-gray-500" v-if="attitudeChecks.alerts.length">
                     <div v-for="(a,i) in attitudeChecks.alerts.slice(-3)" :key="i">⚠️ {{ a }}</div>
                 </div>
@@ -110,6 +120,7 @@ const objects = ref([]);
 const currentObject = ref(null);
 const loading = ref(true);
 const uploadJob = reactive({ status: null, progress: 0, error: null });
+const telemetryQuery = reactive({ start: null, end: null, downsample: 1 });
 const hud = reactive({
     alt: 0, ias: 0, g: 1.0,
     lat: 0, lon: 0, pitch: 0, roll: 0, yaw: 0
@@ -232,7 +243,12 @@ async function onObjectChange() {
 }
 
 async function loadTelemetry(sortieId, objId) {
-    const res = await fetch(`/api/sorties/${sortieId}/telemetry?obj_id=${objId}`);
+    const params = new URLSearchParams();
+    params.set('obj_id', objId);
+    if (telemetryQuery.start !== null && telemetryQuery.start !== undefined) params.set('start', telemetryQuery.start);
+    if (telemetryQuery.end !== null && telemetryQuery.end !== undefined) params.set('end', telemetryQuery.end);
+    if (telemetryQuery.downsample) params.set('downsample', telemetryQuery.downsample);
+    const res = await fetch(`/api/sorties/${sortieId}/telemetry?${params.toString()}`);
     activeTelemetry = await res.json();
 
     let rawStart = currentSortie.value.start_time;
@@ -240,6 +256,11 @@ async function loadTelemetry(sortieId, objId) {
     flightStartTime = Cesium.JulianDate.fromIso8601(rawStart);
 
     visualizeFlight(activeTelemetry, flightStartTime);
+}
+
+async function applyTelemetryQuery() {
+    if (!currentSortie.value || !currentObject.value) return;
+    await loadTelemetry(currentSortie.value.id, currentObject.value.obj_id);
 }
 
 function triggerUpload() {
