@@ -37,6 +37,26 @@
                     </select>
                 </div>
             </div>
+            <div class="p-4 border-t border-gray-700 space-y-2">
+                <h3 class="text-xs uppercase text-gray-400">Attitude Calibration</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    <label class="text-[10px] text-gray-500">Yaw Offset</label>
+                    <input v-model.number="attitudeConfig.yawOffset" type="number" class="col-span-2 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs" />
+                    <label class="text-[10px] text-gray-500">Pitch Sign</label>
+                    <select v-model.number="attitudeConfig.pitchSign" class="col-span-2 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs">
+                        <option :value="1">+1</option>
+                        <option :value="-1">-1</option>
+                    </select>
+                    <label class="text-[10px] text-gray-500">Roll Sign</label>
+                    <select v-model.number="attitudeConfig.rollSign" class="col-span-2 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs">
+                        <option :value="1">+1</option>
+                        <option :value="-1">-1</option>
+                    </select>
+                </div>
+                <div class="text-[10px] text-gray-500" v-if="attitudeChecks.alerts.length">
+                    <div v-for="(a,i) in attitudeChecks.alerts.slice(-3)" :key="i">⚠️ {{ a }}</div>
+                </div>
+            </div>
             <div class="flex-1 overflow-y-auto divide-y divide-gray-700">
                 <div v-if="loading" class="p-4 text-center text-gray-500 text-sm italic">Loading missions...</div>
                 <div v-else-if="sorties.length === 0" class="p-4 text-center text-gray-500 text-sm italic">No data found.</div>
@@ -95,6 +115,20 @@ const hud = reactive({
     lat: 0, lon: 0, pitch: 0, roll: 0, yaw: 0
 });
 
+const attitudeConfig = reactive({
+    yawOffset: 180,
+    pitchSign: 1,
+    rollSign: 1
+});
+const attitudeChecks = reactive({
+    enabled: true,
+    maxYawDelta: 45,
+    maxPitchDelta: 30,
+    maxRollDelta: 60,
+    last: null,
+    alerts: []
+});
+
 let viewer = null;
 let currentEntity = null;
 
@@ -125,6 +159,12 @@ function initCesium() {
     });
     
     viewer.scene.globe.baseColor = Cesium.Color.BLACK;
+
+    // Debug axes for attitude verification
+    viewer.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(0, 0, 0),
+        point: { pixelSize: 6, color: Cesium.Color.WHITE }
+    });
     
     // HUD Update Loop
     viewer.clock.onTick.addEventListener(() => {
@@ -246,6 +286,10 @@ function visualizeFlight(telemetry, start) {
     
     const positions = new Cesium.SampledPositionProperty();
     const orientations = new Cesium.SampledProperty(Cesium.Quaternion);
+
+    // reset attitude checks
+    attitudeChecks.last = null;
+    attitudeChecks.alerts = [];
     
     telemetry.forEach(point => {
         const time = Cesium.JulianDate.addSeconds(start, point.time_offset, new Cesium.JulianDate());
@@ -253,10 +297,10 @@ function visualizeFlight(telemetry, start) {
         positions.addSample(time, position);
         
         // ACMI angles are in degrees (yaw=heading). Convert directly to Cesium HPR
-        const headingOffset = Cesium.Math.toRadians(180); // model forward axis fix
+        const headingOffset = Cesium.Math.toRadians(attitudeConfig.yawOffset);
         const yawDeg = point.yaw || 0;
-        const pitchDeg = point.pitch || 0;
-        const rollDeg = point.roll || 0;
+        const pitchDeg = (point.pitch || 0) * attitudeConfig.pitchSign;
+        const rollDeg = (point.roll || 0) * attitudeConfig.rollSign;
 
         const heading = Cesium.Math.toRadians(yawDeg) + headingOffset;
         const pitch = Cesium.Math.toRadians(pitchDeg);
@@ -265,6 +309,19 @@ function visualizeFlight(telemetry, start) {
         const hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
         const orientation = Cesium.Transforms.headingPitchRollQuaternion(position, hpr);
         orientations.addSample(time, orientation);
+
+        if (attitudeChecks.enabled) {
+            const last = attitudeChecks.last;
+            if (last) {
+                const dy = Math.abs(yawDeg - last.yaw);
+                const dp = Math.abs(pitchDeg - last.pitch);
+                const dr = Math.abs(rollDeg - last.roll);
+                if (dy > attitudeChecks.maxYawDelta || dp > attitudeChecks.maxPitchDelta || dr > attitudeChecks.maxRollDelta) {
+                    attitudeChecks.alerts.push(`Δ yaw ${dy.toFixed(1)} pitch ${dp.toFixed(1)} roll ${dr.toFixed(1)}`);
+                }
+            }
+            attitudeChecks.last = { yaw: yawDeg, pitch: pitchDeg, roll: rollDeg };
+        }
     });
     
     currentEntity = viewer.entities.add({
