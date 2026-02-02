@@ -131,6 +131,7 @@ const attitudeChecks = reactive({
 
 let viewer = null;
 let currentEntity = null;
+let axesPrimitive = null;
 
 onMounted(async () => {
     initCesium();
@@ -166,13 +167,21 @@ function initCesium() {
         point: { pixelSize: 6, color: Cesium.Color.WHITE }
     });
     
-    // HUD Update Loop
+    // HUD Update Loop + Attitude Axes
     viewer.clock.onTick.addEventListener(() => {
         if (!currentSortie.value || !currentEntity) return;
-        
-        // This is a simplified HUD update. 
-        // In Vue, we update the reactive 'hud' object, and DOM updates automatically.
-        // We need the telemetry data. For simplicity, we'll store active telemetry in a variable.
+
+        if (axesPrimitive) {
+            viewer.scene.primitives.remove(axesPrimitive);
+            axesPrimitive = null;
+        }
+        const time = viewer.clock.currentTime;
+        const modelMatrix = currentEntity.computeModelMatrix(time, new Cesium.Matrix4());
+        axesPrimitive = new Cesium.DebugModelMatrixPrimitive({
+            modelMatrix,
+            length: 500
+        });
+        viewer.scene.primitives.add(axesPrimitive);
     });
 }
 
@@ -337,10 +346,12 @@ function visualizeFlight(telemetry, start) {
             leadTime: 0,
             trailTime: Number.POSITIVE_INFINITY,
             material: Cesium.Color.YELLOW,
-            width: 3,
+            width: 2,
             resolution: 1
         }
     });
+
+    // Attitude reference axes handled by DebugModelMatrixPrimitive
     
     // Timeline setup
     const stop = Cesium.JulianDate.addSeconds(start, telemetry[telemetry.length-1].time_offset, new Cesium.JulianDate());
