@@ -40,6 +40,7 @@ class AcmiParser:
         pilot_name = "Unknown Pilot"
         aircraft_type = "Unknown"
         reference_time = None
+        recording_time = None
         reference_lon = 0.0
         reference_lat = 0.0
         global_props_buffer = []
@@ -90,6 +91,9 @@ class AcmiParser:
                         if 'ReferenceTime=' in line:
                             match = re.search(r'ReferenceTime=([^,]*)', line)
                             if match: reference_time = match.group(1)
+                        if 'RecordingTime=' in line:
+                            match = re.search(r'RecordingTime=([^,]*)', line)
+                            if match: recording_time = match.group(1)
                         if 'ReferenceLongitude=' in line:
                             match = re.search(r'ReferenceLongitude=([^,]*)', line)
                             if match: reference_lon = float(match.group(1))
@@ -185,9 +189,10 @@ class AcmiParser:
                         if self.sortie_id is None and (obj_type and obj_type.startswith('Air')):
                             aircraft_type = obj_name or aircraft_type
                             pilot_name = obj_pilot or pilot_name
+                            start_time_value = reference_time or recording_time
                             cursor.execute(
-                                "INSERT INTO sorties (mission_name, pilot_name, aircraft_type, parse_status, reference_time) VALUES (?, ?, ?, ?, ?)",
-                                (mission_name, pilot_name, aircraft_type, "running", reference_time)
+                                "INSERT INTO sorties (mission_name, pilot_name, aircraft_type, start_time, parse_status, reference_time) VALUES (?, ?, ?, ?, ?, ?)",
+                                (mission_name, pilot_name, aircraft_type, start_time_value, "running", reference_time)
                             )
                             self.sortie_id = cursor.lastrowid
                             update_job(sortie_id=self.sortie_id)

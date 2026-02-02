@@ -185,6 +185,15 @@ const attitudeConfig = reactive({
     pitchSign: 1,
     rollSign: 1
 });
+
+function getYawOffsetForObject(obj) {
+    const name = (obj?.name || '').toLowerCase();
+    if (name.includes('su-27')) return 270;
+    if (name.includes('su27')) return 270;
+    if (name.includes('f-16')) return 180;
+    if (name.includes('f-4')) return 180;
+    return 180;
+}
 const attitudeChecks = reactive({
     enabled: true,
     maxYawDelta: 45,
@@ -274,6 +283,7 @@ async function loadObjects(sortieId) {
     objects.value = await res.json();
     if (objects.value.length > 0) {
         currentObject.value = objects.value[0];
+        attitudeConfig.yawOffset = getYawOffsetForObject(currentObject.value);
     } else {
         currentObject.value = null;
     }
@@ -293,6 +303,7 @@ async function selectSortie(sortie) {
 
 async function onObjectChange() {
     if (!currentSortie.value || !currentObject.value) return;
+    attitudeConfig.yawOffset = getYawOffsetForObject(currentObject.value);
     await loadTelemetry(currentSortie.value.id, currentObject.value.obj_id);
 }
 
