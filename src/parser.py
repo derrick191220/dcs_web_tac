@@ -241,12 +241,33 @@ class AcmiParser:
                             lon = to_float_nullable(coords[0]) if len(coords) > 0 else None
                             lat = to_float_nullable(coords[1]) if len(coords) > 1 else None
                             alt = to_float_nullable(coords[2]) if len(coords) > 2 else None
-                            roll = to_float_nullable(coords[3]) if len(coords) > 3 else None
-                            pitch = to_float_nullable(coords[4]) if len(coords) > 4 else None
-                            yaw = to_float_nullable(coords[5]) if len(coords) > 5 else None
-                            u = to_float_nullable(coords[6]) if len(coords) > 6 else None
-                            v = to_float_nullable(coords[7]) if len(coords) > 7 else None
-                            heading = to_float_nullable(coords[8]) if len(coords) > 8 else None
+
+                            def is_vel(x):
+                                return x is not None and abs(x) > 3600
+
+                            roll = pitch = yaw = None
+                            u = v = heading = None
+
+                            # Tacview allows trailing fields to be omitted. Some ACMI emit lon|lat|alt|u|v (no empty placeholders).
+                            # If 4th/5th values are huge, treat them as u/v (velocity), not roll/pitch.
+                            c3 = to_float_nullable(coords[3]) if len(coords) > 3 else None
+                            c4 = to_float_nullable(coords[4]) if len(coords) > 4 else None
+                            c5 = to_float_nullable(coords[5]) if len(coords) > 5 else None
+                            c6 = to_float_nullable(coords[6]) if len(coords) > 6 else None
+                            c7 = to_float_nullable(coords[7]) if len(coords) > 7 else None
+                            c8 = to_float_nullable(coords[8]) if len(coords) > 8 else None
+
+                            if len(coords) >= 5 and (is_vel(c3) or is_vel(c4)):
+                                u = c3
+                                v = c4
+                                heading = c5
+                            else:
+                                roll = c3
+                                pitch = c4
+                                yaw = c5
+                                u = c6
+                                v = c7
+                                heading = c8
 
                             state = self.last_state.get(obj_id, {})
                             lon = lon if lon is not None else state.get('lon')
