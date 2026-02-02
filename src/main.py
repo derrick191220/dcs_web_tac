@@ -93,53 +93,62 @@ def get_telemetry(sortie_id: int, obj_id: str | None = None, start: float | None
                 r[k] = None
         return r
 
-    with database.get_db() as db:
-        cursor = db.cursor()
-        params = [sortie_id]
-        query = "SELECT * FROM telemetry WHERE sortie_id = ?"
-        if obj_id:
-            query += " AND obj_id = ?"
-            params.append(obj_id)
-        if start is not None:
-            query += " AND time_offset >= ?"
-            params.append(start)
-        if end is not None:
-            query += " AND time_offset <= ?"
-            params.append(end)
-        query += " ORDER BY time_offset"
-        if limit:
-            query += " LIMIT ?"
-            params.append(limit)
-        rows = cursor.execute(query, tuple(params)).fetchall()
-        if not rows:
-            raise HTTPException(status_code=404, detail="Sortie data not found")
-        result = [sanitize_row(dict(row)) for row in rows]
-        if downsample:
-            filtered = []
-            last_bucket = None
-            last = None
-            for r in result:
-                # preserve key events (heuristic)
-                is_event = False
-                if last:
-                    if abs(num(r.get("g_force")) - num(last.get("g_force"))) >= 1.5 or num(r.get("g_force")) >= 4:
-                        is_event = True
-                    if abs(num(r.get("alt")) - num(last.get("alt"))) >= 200:
-                        is_event = True
-                    if abs(num(r.get("ias")) - num(last.get("ias"))) >= 80:
-                        is_event = True
-                    if abs(num(r.get("yaw")) - num(last.get("yaw"))) >= 45 or abs(num(r.get("pitch")) - num(last.get("pitch"))) >= 30 or abs(num(r.get("roll")) - num(last.get("roll"))) >= 60:
-                        is_event = True
-                bucket = int(num(r.get("time_offset")) / downsample) if downsample > 0 else r.get("time_offset")
-                if bucket != last_bucket or is_event:
-                    filtered.append(r)
-                    last_bucket = bucket
-                last = r
-            result = filtered
-        if not include_raw:
-            for r in result:
-                r.pop("raw", None)
-        return result
+    try:
+        with database.get_db() as db:
+            cursor = db.cursor()
+            params = [sortie_id]
+            query = "SELECT * FROM telemetry WHERE sortie_id = ?"
+            if obj_id:
+                query += " AND obj_id = ?"
+                params.append(obj_id)
+            if start is not None:
+                query += " AND time_offset >= ?"
+                params.append(start)
+            if end is not None:
+                query += " AND time_offset <= ?"
+                params.append(end)
+            query += " ORDER BY time_offset"
+            if limit:
+                query += " LIMIT ?"
+                params.append(limit)
+            rows = cursor.execute(query, tuple(params)).fetchall()
+            if not rows:
+                raise HTTPException(status_code=404, detail="Sortie data not found")
+            result = [sanitize_row(dict(row)) for row in rows]
+            if downsample:
+                filtered = []
+                last_bucket = None
+                last = None
+                for r in result:
+                    # preserve key events (heuristic)
+                    is_event = False
+                    if last:
+                        if abs(num(r.get("g_force")) - num(last.get("g_force"))) >= 1.5 or num(r.get("g_force")) >= 4:
+                            is_event = True
+                        if abs(num(r.get("alt")) - num(last.get("alt"))) >= 200:
+                            is_event = True
+                        if abs(num(r.get("ias")) - num(last.get("ias"))) >= 80:
+                            is_event = True
+                        if abs(num(r.get("yaw")) - num(last.get("yaw"))) >= 45 or abs(num(r.get("pitch")) - num(last.get("pitch"))) >= 30 or abs(num(r.get("roll")) - num(last.get("roll"))) >= 60:
+                            is_event = True
+                    bucket = int(num(r.get("time_offset")) / downsample) if downsample > 0 else r.get("time_offset")
+                    if bucket != last_bucket or is_event:
+                        filtered.append(r)
+                        last_bucket = bucket
+                    last = r
+                result = filtered
+            if not include_raw:
+                for r in result:
+                    r.pop("raw", None)
+            return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        app_logger.exception(
+            "Telemetry endpoint failed",
+            extra={"sortie_id": sortie_id, "obj_id": obj_id, "start": start, "end": end, "downsample": downsample, "limit": limit}
+        )
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: telemetry failed")
 
 @app.post("/api/upload", tags=["Ingestion"])
 async def upload_acmi(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
