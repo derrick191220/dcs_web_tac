@@ -100,11 +100,24 @@ def get_telemetry(sortie_id: int, obj_id: str | None = None, start: float | None
         if downsample:
             filtered = []
             last_bucket = None
+            last = None
             for r in result:
+                # preserve key events (heuristic)
+                is_event = False
+                if last:
+                    if abs(r.get("g_force", 0) - last.get("g_force", 0)) >= 1.5 or r.get("g_force", 0) >= 4:
+                        is_event = True
+                    if abs(r.get("alt", 0) - last.get("alt", 0)) >= 200:
+                        is_event = True
+                    if abs(r.get("ias", 0) - last.get("ias", 0)) >= 80:
+                        is_event = True
+                    if abs(r.get("yaw", 0) - last.get("yaw", 0)) >= 45 or abs(r.get("pitch", 0) - last.get("pitch", 0)) >= 30 or abs(r.get("roll", 0) - last.get("roll", 0)) >= 60:
+                        is_event = True
                 bucket = int(r["time_offset"] / downsample) if downsample > 0 else r["time_offset"]
-                if bucket != last_bucket:
+                if bucket != last_bucket or is_event:
                     filtered.append(r)
                     last_bucket = bucket
+                last = r
             result = filtered
         if not include_raw:
             for r in result:
