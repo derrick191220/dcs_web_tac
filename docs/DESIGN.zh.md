@@ -59,6 +59,26 @@
 - 姿态合理性检查（航向连续、俯仰/滚转范围）
 - 可选抽样对比（渲染点 vs 原始遥测）
 
+## 4.5 三维模型姿态驱动机制
+- 每条遥测包含 **经纬度/高度 + yaw/pitch/roll（度）**
+- Cesium 驱动链路：
+  1) `SampledPositionProperty`（位置）
+  2) `SampledProperty(Quaternion)`（姿态）
+  3) `Transforms.headingPitchRollQuaternion` 生成四元数
+- 模型随时间轴自动插值更新（无需手动插值）
+
+## 4.6 之前姿态不准的原因
+- ACMI 角度语义理解有误（NED/ENU 假设错误）
+- 模型正向轴未校准（需要 yaw offset）
+- 缺少可视化参考轴与验证流程
+
+## 4.7 后续确保准确的改进
+- 固化角度语义与转换规则（写入文档与代码）
+- 模型轴校准参数（yawOffset/pitchSign/rollSign）
+- 可视化姿态参考轴 + 数值 HUD 对照
+- 自动检测姿态异常（逐帧差异阈值）
+- 参考场景回归测试（直飞/爬升/滚转）
+
 ### 4.5 诊断
 - 本地链路测试（pytest + headless）
 - 线上 `doctor.py` 扫描 + 最新解析状态
@@ -180,9 +200,10 @@
 
 ---
 
-## 9. 技术栈
-- **后端**：FastAPI + SQLite（Render），可扩展 Postgres
-- **前端**：Vue 3 + Vite + Cesium.js + Tailwind CSS
+## 9. 技术栈与权威性
+- **Cesium.js**：行业标准 3D 地球/航迹引擎（航空/地理场景广泛使用）
+- **FastAPI**：高性能现代 API 框架（Python 生态标准）
+- **ACMI（Tacview）**：飞行回放领域事实标准
 - **诊断**：pytest + Playwright + doctor.py
 
 ## 10. 技术难点与解决措施

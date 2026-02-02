@@ -59,6 +59,26 @@ This document is **actionable**: it defines scope, flows, API contracts, data mo
 - Orientation sanity checks (yaw continuity, pitch/roll limits).
 - Optional **ground truth** sampling: compare rendered positions vs raw telemetry.
 
+## 4.5 3D Model Attitude Drive (How it works)
+- Each telemetry point provides **lat/lon/alt + yaw/pitch/roll** in degrees.
+- Cesium pipeline:
+  1) `SampledPositionProperty` for position (time‑stamped)
+  2) `SampledProperty(Quaternion)` for orientation
+  3) `Transforms.headingPitchRollQuaternion(position, HPR)` to produce orientation
+- The 3D model is updated by Cesium per timeline tick (no manual interpolation).
+
+## 4.6 Why Earlier Attitude Was Incorrect (Root cause)
+- Wrong assumption about ACMI angle conventions (NED vs ENU).
+- Model forward axis not explicitly calibrated (needed yaw offset).
+- No visual reference axes or validation harness to catch drift.
+
+## 4.7 Improvements to Guarantee Accuracy
+- Fix and lock **angle conventions** (ACMI yaw/pitch/roll → Cesium HPR) in docs + code.
+- Add **model axis calibration** (yawOffset/pitchSign/rollSign constants per model).
+- Add **visual attitude axes** (debug overlay) and **numeric verification** HUD.
+- Add **automated attitude checks**: max delta between consecutive frames; log anomalies.
+- Add **reference scenario tests** (straight flight, 90° roll, climb) to validate.
+
 ### 4.5 Diagnostics
 - Local chain test (pytest + headless browser).
 - Production scan with `doctor.py` + last parse status.
@@ -192,9 +212,10 @@ This document is **actionable**: it defines scope, flows, API contracts, data mo
 
 ---
 
-## 9. Tech Stack
-- **Backend**: FastAPI + SQLite (Render), optional Postgres for scale
-- **Frontend**: Vue 3 + Vite + Cesium.js + Tailwind CSS
+## 9. Tech Stack & Authority
+- **Cesium.js**: industry‑standard 3D globe/trajectory engine (geospatial + aviation usage)
+- **FastAPI**: modern high‑performance API framework (Python ecosystem standard)
+- **ACMI (Tacview)**: de‑facto standard for flight replay data
 - **Diagnostics**: pytest + Playwright + doctor.py
 
 ## 10. Technical Challenges & Mitigations
