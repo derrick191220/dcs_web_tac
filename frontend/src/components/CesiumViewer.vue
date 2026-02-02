@@ -4,7 +4,7 @@
     <header class="h-16 border-b border-gray-700 flex items-center px-6 justify-between bg-gray-800 shrink-0">
         <div class="flex items-center space-x-3">
             <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center font-bold">W</div>
-            <h1 class="text-xl font-semibold tracking-tight">DCS Web-Tac <span class="text-xs text-gray-400">v0.3.0 (Vue)</span></h1>
+            <h1 class="text-xl font-semibold tracking-tight">DCS Web-Tac <span class="text-xs text-gray-400">v0.3.1 (Vue)</span></h1>
         </div>
         <div class="flex space-x-4">
             <input ref="fileInput" type="file" class="hidden" @change="onFileSelected" accept=".acmi,.zip,.gz,.zip.acmi" />
@@ -16,6 +16,7 @@
             <span class="text-sm text-gray-300 self-center" v-else>
                 Pilot: {{ currentObject?.pilot || 'Unknown' }} | {{ currentObject?.name || 'Aircraft' }}
             </span>
+            <span class="text-xs text-gray-400 self-center">ID: {{ currentSortie?.id ?? '—' }} / {{ currentObject?.obj_id ?? '—' }}</span>
         </div>
     </header>
 
